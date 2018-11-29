@@ -26,7 +26,8 @@ class Peer {
 class Connection {
   constructor() {
 
-    this._streams = {}
+    this._localStreams = {}
+    this._remoteStreams = {}
     this._nextStreamId = 0
   }
 
@@ -37,12 +38,8 @@ class Connection {
       case MESSAGE_TYPE_CREATE_STREAM: {
         console.log("Create new stream: " + message.streamId)
 
-        // connections share stream ids, ie they are unique between both ends 
-        if (message.streamId > this._nextStreamId) {
-          this._nextStreamId = message.streamId + 1
-        }
-
         const stream = this._makeStream(message.streamId)
+        this._remoteStreams[message.streamId] = stream
         this._onStream(stream)
 
         break;
@@ -50,7 +47,7 @@ class Connection {
       case MESSAGE_TYPE_STREAM_DATA: {
         console.log("Stream data for stream: " + message.streamId)
 
-        const stream = this._streams[message.streamId]
+        const stream = this._remoteStreams[message.streamId]
         if (stream) {
           stream.onReceive(message.data)
         }
@@ -61,7 +58,7 @@ class Connection {
         break;
       }
       default: {
-        console.error("Unsupported message type")
+        console.error("Unsupported message type: " + message.type)
         break;
       }
     }
@@ -78,13 +75,13 @@ class Connection {
   createStream(metadata) {
     const id = this.nextStreamId()
     const stream = this._makeStream(id)
+    this._localStreams[id] = stream
     this._signalCreateStream(id)
     return stream
   }
 
   _makeStream(id) {
     const stream = new Stream(id, this._streamSend.bind(this))
-    this._streams[id] = stream
     return stream
   }
 
@@ -115,10 +112,11 @@ class Connection {
   }
 
   _parseMessage(rawMessage) {
+    const byteMessage = new Uint8Array(rawMessage.data)
     const message = {}
-    message.type = rawMessage.data[0]
-    message.streamId = rawMessage.data[1]
-    message.data = rawMessage.data.slice(2)
+    message.type = byteMessage[0]
+    message.streamId = byteMessage[1]
+    message.data = byteMessage.slice(2)
     return message
   }
 }
@@ -139,7 +137,6 @@ class Stream {
   }
 
   onReceive(data) {
-    console.log("receive")
     this._onData(data)
   }
 }

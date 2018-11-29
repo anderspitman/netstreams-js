@@ -19,6 +19,15 @@ ws.onopen = (event) => {
     conn.onMessage(rawMessage)
   }
 
+  conn.onStream((stream) => {
+    console.log("new stream")
+
+    stream.onData((data) => {
+      console.log("data")
+      console.log(data)
+    })
+  })
+
   const metadata = {}
   const stream = conn.createStream(metadata)
   const stream2 = conn.createStream(metadata)
