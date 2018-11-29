@@ -21,6 +21,7 @@ wsServer.on('connection', (ws) => {
 
     stream.onData((data) => {
       console.log("data")
+      console.log(data)
       console.log(data.toString('utf8'))
     })
   })

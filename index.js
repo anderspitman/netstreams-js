@@ -104,10 +104,14 @@ class Connection {
   }
 
   _streamSend(streamId, data) {
-    const message = new Uint8Array(2)
+    const message = new Uint8Array(2 + data.length)
     message[0] = MESSAGE_TYPE_STREAM_DATA
     message[1] = streamId 
-    this._send(message.concat(data))
+
+    for (let i = 0; i < data.byteLength; i++) {
+      message[i+2] = data[i]
+    }
+    this._send(message)
   }
 
   _parseMessage(rawMessage) {

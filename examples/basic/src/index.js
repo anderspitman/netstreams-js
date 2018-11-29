@@ -23,8 +23,9 @@ ws.onopen = (event) => {
   const stream = conn.createStream(metadata)
   const stream2 = conn.createStream(metadata)
 
-  stream.write("hi there")
-  stream.write("hi there")
-  stream.write("hi there")
-  stream2.write("yolo")
+  const enc = new TextEncoder()
+
+  stream.write(enc.encode("hi there"))
+  stream.write(new Uint8Array([2,3,4,5,6]))
+  stream2.write(enc.encode("yolo"))
 }
