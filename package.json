@@ -8,5 +8,8 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {}
+  "dependencies": {
+    "arraybuffer-to-string": "^1.0.2",
+    "string-to-arraybuffer": "^1.0.2"
+  }
 }
