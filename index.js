@@ -2,7 +2,7 @@ const { FileChunker } = require('file-chunk-reader')
 const ab2str = require('arraybuffer-to-string')
 const str2ab = require('string-to-arraybuffer')
 
-const MESSAGE_TYPE_CREATE_STREAM = 0
+const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
 const MESSAGE_TYPE_TERMINATE_SEND_STREAM = 3
@@ -68,7 +68,7 @@ class Connection {
     const message = this._parseMessage(rawMessage)
 
     switch (message.type) {
-      case MESSAGE_TYPE_CREATE_STREAM: {
+      case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
         console.log("Create stream: " + message.streamId)
 
         
@@ -174,7 +174,7 @@ class Connection {
 
     // TODO: allow stream ids to go higher than 256, or at least reuse them
     const message = new Uint8Array(2 + mdArray.byteLength)
-    message[0] = MESSAGE_TYPE_CREATE_STREAM
+    message[0] = MESSAGE_TYPE_CREATE_RECEIVE_STREAM
     message[1] = streamId
 
     for (let i = 0; i < mdArray.byteLength; i++) {
