@@ -59,8 +59,8 @@ class Peer {
 class Connection {
   constructor() {
 
-    this._localStreams = {}
-    this._remoteStreams = {}
+    this._sendStreams = {}
+    this._receiveStreams = {}
     this._nextStreamId = 0
   }
 
@@ -71,8 +71,10 @@ class Connection {
       case MESSAGE_TYPE_CREATE_STREAM: {
         console.log("Create stream: " + message.streamId)
 
-        const stream = this._makeStream(message.streamId)
-        this._remoteStreams[message.streamId] = stream
+        
+        const stream = this._makeReceiveStream(message.streamId)
+
+        this._receiveStreams[message.streamId] = stream
 
         const metadata = JSON.parse(ab2str(message.data))
 
@@ -83,7 +85,7 @@ class Connection {
       case MESSAGE_TYPE_STREAM_DATA: {
         //console.log("Stream data for stream: " + message.streamId)
 
-        const stream = this._remoteStreams[message.streamId]
+        const stream = this._receiveStreams[message.streamId]
         if (stream) {
           stream.onReceive(message.data)
         }
@@ -95,7 +97,7 @@ class Connection {
       }
       case MESSAGE_TYPE_STREAM_END: {
         console.log("Stream ended: " + message.streamId)
-        const stream = this._remoteStreams[message.streamId]
+        const stream = this._receiveStreams[message.streamId]
         stream._onEnd()
         break;
       }
@@ -116,29 +118,39 @@ class Connection {
 
   createStream(metadata) {
     const id = this.nextStreamId()
-    const stream = this._makeStream(id)
-    this._localStreams[id] = stream
+    const stream = this._makeSendStream(id)
+    this._sendStreams[id] = stream
     this._signalCreateStream(id, metadata)
-    stream.onEnd(() => {
+    return stream
+  }
+
+  _makeSendStream(id) {
+    const sendFunc = (data) => {
+      this._streamSend(id, data)
+    }
+
+    const endFunc = () => {
       const message = new Uint8Array(2)
       message[0] = MESSAGE_TYPE_STREAM_END
       message[1] = id 
       this._send(message)
-    })
-    return stream
-  }
-
-  _makeStream(id) {
-    const sendFunc = this._streamSend.bind(this)
-    const writeFunc = (data) => {
-      sendFunc(id, data)
     }
 
     const terminateFunc = () => {
-      this._streamTerminate(id)
+      this._terminateSendStream(id)
     }
 
-    const stream = new Stream(id, writeFunc, terminateFunc)
+    const stream = new SendStream({ sendFunc, endFunc, terminateFunc })
+    return stream
+  }
+
+  _makeReceiveStream(id) {
+
+    const terminateFunc = () => {
+      this._terminateReceiveStream(id)
+    }
+
+    const stream = new ReceiveStream({ terminateFunc })
     return stream
   }
 
@@ -184,18 +196,12 @@ class Connection {
     this._send(message)
   }
 
-  _streamTerminate(streamId) {
+  _terminateSendStream(streamId) {
+    console.log("terminate send stream: " + streamId)
+  }
 
-    if (this._isLocalStream(streamId)) {
-      console.log("terminate local stream: " + streamId)
-      // inform the remote peer and delete local reference
-      this._signalTerminateStream(streamId)
-      //delete this._localStreams[streamId]
-    }
-    else {
-      console.log("terminate remote stream: " + streamId)
-      //delete this._remoteStreams[streamId]
-    }
+  _terminateReceiveStream(streamId) {
+    console.log("terminate receive stream: " + streamId)
   }
 
   _parseMessage(rawMessage) {
@@ -208,26 +214,24 @@ class Connection {
   }
 
   _isLocalStream(streamId) {
-    return this._localStreams[streamId] !== undefined
+    return this._sendStreams[streamId] !== undefined
   }
 }
 
 
-class Stream {
-  constructor(id, write, terminate, chunkSize) {
-    this.id = id
-    this._write = write 
-    this._terminate = terminate
+class SendStream {
+  constructor({ sendFunc, endFunc, terminateFunc, chunkSize }) {
+    this._send = sendFunc
+    this._end = endFunc
+    this._terminate = terminateFunc
     this._chunkSize = chunkSize ? chunkSize : 1024
-    this._onData = () => {}
-    this._onEnd = () => {}
   }
 
-  write(data) {
-    this._write(new Uint8Array(data))
+  send(data) {
+    this._send(new Uint8Array(data))
   }
 
-  writeFile(file) {
+  sendFile(file) {
 
     const chunker = new FileChunker(file, {
       binary: true,
@@ -236,11 +240,11 @@ class Stream {
 
     chunker.onChunk((chunk) => {
       console.log("send chunk")
-      this.write(chunk)
+      this.send(chunk)
     });
 
     chunker.onEnd(() => {
-      this._onEnd()
+      this._end()
     });
 
     chunker.read();
@@ -248,6 +252,17 @@ class Stream {
 
   terminate() {
     this._terminate()
+  }
+}
+
+
+class ReceiveStream {
+
+  constructor({ terminateFunc }) {
+    this._onData = () => {}
+    this._onEnd = () => {}
+    this._onTerminate = () => {}
+    this._terminate = terminateFunc
   }
 
   onData(callback) {
@@ -262,6 +277,9 @@ class Stream {
     this._onData(data)
   }
 
+  terminate() {
+    this._terminate()
+  }
 }
 
 module.exports = {
