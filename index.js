@@ -5,7 +5,7 @@ const str2ab = require('string-to-arraybuffer')
 const MESSAGE_TYPE_CREATE_STREAM = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
-const MESSAGE_TYPE_TERMINATE_STREAM = 3
+const MESSAGE_TYPE_TERMINATE_SEND_STREAM = 3
 
 
 class Peer {
@@ -101,6 +101,13 @@ class Connection {
         stream._onEnd()
         break;
       }
+      case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
+        console.log("Terminate send stream: " + message.streamId)
+        const stream = this._sendStreams[message.streamId]
+        stream.stop()
+        delete this._sendStreams[message.streamId]
+        break;
+      }
       default: {
         console.error("Unsupported message type: " + message.type)
         break;
@@ -177,14 +184,6 @@ class Connection {
     this._send(message)
   }
 
-  _signalTerminateStream(streamId) {
-    const message = new Uint8Array(2)
-    message[0] = MESSAGE_TYPE_TERMINATE_STREAM
-    message[1] = streamId
-
-    this._send(message)
-  }
-
   _streamSend(streamId, data) {
     const message = new Uint8Array(2 + data.byteLength)
     message[0] = MESSAGE_TYPE_STREAM_DATA
@@ -202,6 +201,13 @@ class Connection {
 
   _terminateReceiveStream(streamId) {
     console.log("terminate receive stream: " + streamId)
+    const message = new Uint8Array(2)
+    message[0] = MESSAGE_TYPE_TERMINATE_SEND_STREAM
+    message[1] = streamId
+
+    console.log("send it")
+    console.log(message)
+    this._send(message)
   }
 
   _parseMessage(rawMessage) {
@@ -233,25 +239,31 @@ class SendStream {
 
   sendFile(file) {
 
-    const chunker = new FileChunker(file, {
+    this._chunker = new FileChunker(file, {
       binary: true,
       chunkSize: 1 * 1024 * 1024,
     })
 
-    chunker.onChunk((chunk) => {
+    this._chunker.onChunk((chunk) => {
       console.log("send chunk")
       this.send(chunk)
     });
 
-    chunker.onEnd(() => {
+    this._chunker.onEnd(() => {
       this._end()
     });
 
-    chunker.read();
+    this._chunker.read()
   }
 
   terminate() {
     this._terminate()
+  }
+
+  stop() {
+    if (this._chunker) {
+      this._chunker.cancel()
+    }
   }
 }
 
