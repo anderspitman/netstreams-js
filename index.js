@@ -172,26 +172,24 @@ class Connection {
     const mdString = JSON.stringify(metadata)
     const mdArray = new Uint8Array(str2ab(mdString))
 
-    // TODO: allow stream ids to go higher than 256, or at least reuse them
-    const message = new Uint8Array(2 + mdArray.byteLength)
+    const signallingLength = 2
+
+    // TODO: allow stream ids to go higher than 255, or at least reuse them
+    const message = new Uint8Array(signallingLength + mdArray.byteLength)
     message[0] = MESSAGE_TYPE_CREATE_RECEIVE_STREAM
     message[1] = streamId
-
-    for (let i = 0; i < mdArray.byteLength; i++) {
-      message[i+2] = mdArray[i]
-    }
+    message.set(mdArray, signallingLength)
     
     this._send(message)
   }
 
   _streamSend(streamId, data) {
-    const message = new Uint8Array(2 + data.byteLength)
+    
+    const signallingLength = 2
+    const message = new Uint8Array(signallingLength + data.byteLength)
     message[0] = MESSAGE_TYPE_STREAM_DATA
     message[1] = streamId 
-
-    for (let i = 0; i < data.byteLength; i++) {
-      message[i+2] = data[i]
-    }
+    message.set(data, signallingLength)
     this._send(message)
   }
 
