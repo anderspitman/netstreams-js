@@ -6,6 +6,7 @@ const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
 const MESSAGE_TYPE_TERMINATE_SEND_STREAM = 3
+const MESSAGE_TYPE_STREAM_ACK = 4
 
 
 class Peer {
@@ -105,7 +106,16 @@ class Connection {
         console.log("Terminate send stream: " + message.streamId)
         const stream = this._sendStreams[message.streamId]
         stream.stop()
-        delete this._sendStreams[message.streamId]
+        // TODO: properly delete streams when done
+        //delete this._sendStreams[message.streamId]
+        break;
+      }
+      case MESSAGE_TYPE_STREAM_ACK: {
+        const dv = new DataView(message.data.buffer)
+        const totalBytesAcked = dv.getFloat64(0)
+
+        const stream = this._sendStreams[message.streamId]
+        stream.ack(totalBytesAcked)
         break;
       }
       default: {
@@ -153,11 +163,22 @@ class Connection {
 
   _makeReceiveStream(id) {
 
+    const ackFunc = (totalBytesReceived) => {
+      const message = new DataView(new ArrayBuffer(2 + 8))
+      message.setInt8(0, MESSAGE_TYPE_STREAM_ACK)
+      message.setInt8(1, id) 
+
+      // use float64 because int32 only supports about 4GiB and javascript
+      // doesn't support int64
+      message.setFloat64(2, totalBytesReceived)
+      this._send(message)
+    }
+
     const terminateFunc = () => {
       this._terminateReceiveStream(id)
     }
 
-    const stream = new ReceiveStream({ terminateFunc })
+    const stream = new ReceiveStream({ ackFunc, terminateFunc })
     return stream
   }
 
@@ -224,15 +245,29 @@ class Connection {
 
 
 class SendStream {
-  constructor({ sendFunc, endFunc, terminateFunc, chunkSize }) {
+  constructor({ sendFunc, endFunc, terminateFunc, bufferSize, chunkSize }) {
     this._send = sendFunc
     this._end = endFunc
     this._terminate = terminateFunc
+    this._bufferSize = bufferSize ? bufferSize : 1024*1024
+    // TODO: use this
     this._chunkSize = chunkSize ? chunkSize : 1024
+    this._totalBytesSent = 0
+    this._totalBytesAcked = 0
+
+    this._bufferFull = false
+    this._paused = false
   }
 
   send(data) {
-    this._send(new Uint8Array(data))
+    const array = new Uint8Array(data)
+    this._totalBytesSent += array.byteLength
+    this._send(array)
+  }
+
+  ack(totalBytesAcked) {
+    this._totalBytesAcked = totalBytesAcked
+    this._checkBuffer()
   }
 
   sendFile(file) {
@@ -242,9 +277,19 @@ class SendStream {
       chunkSize: 1 * 1024 * 1024,
     })
 
-    this._chunker.onChunk((chunk) => {
+    this._chunker.onChunk((chunk, readyForMore) => {
       console.log("send chunk")
       this.send(chunk)
+
+      this._checkBuffer()
+
+      if (!this._bufferFull) {
+        readyForMore()
+      }
+      else {
+        this._paused = true
+        this._readyForMore = readyForMore
+      }
     });
 
     this._chunker.onEnd(() => {
@@ -263,16 +308,32 @@ class SendStream {
       this._chunker.cancel()
     }
   }
+
+  _checkBuffer() {
+    const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
+    if (bytesInFlight > this._bufferSize) {
+      this._bufferFull = true
+    }
+    else {
+      if (this._paused) {
+        this._paused = false
+        this._readyForMore()
+        this._readyForMore = null
+      }
+    }
+  }
 }
 
 
 class ReceiveStream {
 
-  constructor({ terminateFunc }) {
+  constructor({ ackFunc, terminateFunc }) {
     this._onData = () => {}
     this._onEnd = () => {}
     this._onTerminate = () => {}
+    this._ack = ackFunc
     this._terminate = terminateFunc
+    this._totalBytesReceived = 0
   }
 
   onData(callback) {
@@ -285,6 +346,8 @@ class ReceiveStream {
 
   onReceive(data) {
     this._onData(data)
+    this._totalBytesReceived += data.byteLength
+    this._ack(this._totalBytesReceived)
   }
 
   terminate() {
