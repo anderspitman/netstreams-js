@@ -274,11 +274,10 @@ class SendStream {
 
     this._chunker = new FileChunker(file, {
       binary: true,
-      chunkSize: 1 * 1024 * 1024,
+      chunkSize: 1024 * 1024,
     })
 
     this._chunker.onChunk((chunk, readyForMore) => {
-      console.log("send chunk")
       this.send(chunk)
 
       this._checkBuffer()
