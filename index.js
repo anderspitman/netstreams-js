@@ -230,7 +230,7 @@ class Connection {
   }
 
   _parseMessage(rawMessage) {
-    const byteMessage = new Uint8Array(rawMessage.data)
+    const byteMessage = new Uint8Array(rawMessage)
     const message = {}
     message.type = byteMessage[0]
     message.streamId = byteMessage[1]
