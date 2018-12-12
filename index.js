@@ -251,12 +251,45 @@ class SendStream {
     this._terminate = terminateFunc
     this._bufferSize = bufferSize ? bufferSize : 1024*1024
     // TODO: use this
-    this._chunkSize = chunkSize ? chunkSize : 1024
+    this._chunkSize = chunkSize ? chunkSize : 1024*1024
     this._totalBytesSent = 0
     this._totalBytesAcked = 0
 
     this._bufferFull = false
     this._paused = false
+  }
+
+  write(data) {
+
+    return new Promise((resolve, reject) => {
+
+      data = new Uint8Array(data)
+
+      const attemptSend = () => {
+
+        const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
+        this._bufferFull = bytesInFlight > this._bufferSize
+
+        if (!this._bufferFull) {
+          if (data.length <= this._chunkSize) {
+            this.send(data)
+            this._readyForMoreCallback = null
+            resolve()
+          }
+          else {
+            const chunk = new Uint8Array(data.buffer, 0, this._chunkSize) 
+            this.send(chunk)
+            data = new Uint8Array(data.buffer, this._chunkSize, data.length - this._chunkSize)
+            attemptSend()
+          }
+        }
+        else {
+          this._readyForMoreCallback = attemptSend 
+        }
+      }
+
+      attemptSend()
+    })
   }
 
   send(data) {
@@ -318,6 +351,10 @@ class SendStream {
         this._paused = false
         this._readyForMore()
         this._readyForMore = null
+      }
+
+      if (this._readyForMoreCallback) {
+        this._readyForMoreCallback()
       }
     }
   }
