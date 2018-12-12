@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+  </head>
+
+  <body>
+    <input id='file_button' type='file'></input>
+    <script>
+      const ws = new WebSocket('ws://localhost:9001')
+
+      const data = new Uint8Array(1024*1024*1024).fill(1)
+
+      function timeNowSeconds() {
+        return performance.now() / 1000
+      }
+
+      let startTime
+
+      ws.onopen = () => {
+
+        ws.send(data.length)
+
+        const chunkSize = 10*1024*1024
+        startTime = timeNowSeconds()
+        for (let i = 0; i < data.length; i += chunkSize) {
+          ws.send(data.slice(i, i + chunkSize))
+        }
+
+        //ws.send(data);
+
+        //const uploadButton = document.getElementById('file_button')
+        //uploadButton.addEventListener('change', (e) => {
+        //  const file = e.target.files[0]
+
+        //  const chunkSize = 100*1024*1024
+
+        //  let offset = 0
+
+        //  const startTime = timeNowSeconds()
+
+        //  readChunk()
+
+        //  function readChunk() {
+
+        //    const reader = new FileReader()
+
+        //    const slice = file.slice(offset, offset + chunkSize)
+
+        //    reader.onload = (event) => {
+
+        //      const data = event.target.result
+        //      console.log("chunk")
+        //      //ws.send(data)
+
+        //      offset += chunkSize
+
+        //      if (offset < file.size) {
+        //        readChunk()
+        //      }
+        //      else {
+        //        console.log("done")
+        //        const duration = timeNowSeconds() - startTime
+        //        const mebibytes = file.size / 1024 / 1024
+        //        console.log(mebibytes)
+        //        const mebibits = mebibytes * 8
+        //        console.log(mebibits)
+        //        const bitrate = mebibits / duration
+        //        console.log("bitrate: " + bitrate + "mbps")
+        //      }
+        //    }
+
+        //    reader.readAsArrayBuffer(slice)
+        //  }
+        //})
+      }
+
+      ws.onmessage = () => {
+        const duration = timeNowSeconds() - startTime
+        const mebibytes = data.length / 1024 / 1024
+        console.log(mebibytes)
+        const mebibits = mebibytes * 8
+        console.log(mebibits)
+        const bitrate = mebibits / duration
+        console.log("bitrate: " + bitrate + "mbps")
+      }
+
+    </script>
+  </body>
+</html>
