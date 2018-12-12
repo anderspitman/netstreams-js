@@ -65,7 +65,7 @@ class Connection {
     this._nextStreamId = 0
   }
 
-  onMessage(rawMessage) {
+  handleMessage(rawMessage) {
     const message = this._parseMessage(rawMessage)
 
     switch (message.type) {
