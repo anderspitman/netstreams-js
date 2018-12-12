@@ -345,6 +345,10 @@ class SendStream {
     }
   }
 
+  onFlushed(callback) {
+    this._onFlushed = callback
+  }
+
   _checkBuffer() {
     const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
     if (bytesInFlight > this._bufferSize) {
@@ -359,6 +363,10 @@ class SendStream {
 
       if (this._readyForMoreCallback) {
         this._readyForMoreCallback()
+      }
+
+      if (this._onFlushed && this._totalBytesAcked === this._totalBytesSent) {
+        this._onFlushed()
       }
     }
   }
