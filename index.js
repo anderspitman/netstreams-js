@@ -292,6 +292,10 @@ class SendStream {
     })
   }
 
+  end() {
+    this._end()
+  }
+
   send(data) {
     const array = new Uint8Array(data)
     this._totalBytesSent += array.byteLength
