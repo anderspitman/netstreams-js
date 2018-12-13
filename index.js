@@ -112,10 +112,10 @@ class Connection {
       }
       case MESSAGE_TYPE_STREAM_ACK: {
         const dv = new DataView(message.data.buffer)
-        const totalBytesAcked = dv.getFloat64(0)
+        const bytesAcked = dv.getUint32(0)
 
         const stream = this._sendStreams[message.streamId]
-        stream.ack(totalBytesAcked)
+        stream.ack(bytesAcked)
         break;
       }
       default: {
@@ -163,14 +163,12 @@ class Connection {
 
   _makeReceiveStream(id) {
 
-    const ackFunc = (totalBytesReceived) => {
+    const ackFunc = (numBytes) => {
       const message = new DataView(new ArrayBuffer(2 + 8))
       message.setInt8(0, MESSAGE_TYPE_STREAM_ACK)
       message.setInt8(1, id) 
 
-      // use float64 because int32 only supports about 4GiB and javascript
-      // doesn't support int64
-      message.setFloat64(2, totalBytesReceived)
+      message.setUint32(2, numBytes)
       this._send(message)
     }
 
@@ -312,8 +310,8 @@ class SendStream {
     this._send(array)
   }
 
-  ack(totalBytesAcked) {
-    this._totalBytesAcked = totalBytesAcked
+  ack(numBytes) {
+    this._totalBytesAcked += numBytes 
 
     const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
 
@@ -383,8 +381,7 @@ class ReceiveStream {
 
   onReceive(data) {
     this._onData(data)
-    this._totalBytesReceived += data.byteLength
-    this._ack(this._totalBytesReceived)
+    this._ack(data.byteLength)
   }
 
   terminate() {
