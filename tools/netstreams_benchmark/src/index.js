@@ -31,12 +31,24 @@ ws.onopen = () => {
   const stream = conn.createStream({})
 
   startTime = timeNowSeconds()
+
+  console.log("first write")
+  const firstTime = timeNowSeconds() - startTime
+  console.log(firstTime)
+
   stream.write(data).then(() => {
+    console.log("end")
     stream.end()
   })
   .catch((err) => {
     console.error(err)
   })
+
+  console.log("second write")
+  const secondTime = timeNowSeconds() - startTime
+  console.log(secondTime)
+
+  //stream.write(data)
 
   stream.onFlushed(() => {
     const duration = timeNowSeconds() - startTime

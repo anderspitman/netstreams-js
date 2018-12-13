@@ -250,16 +250,21 @@ class SendStream {
     this._end = endFunc
     this._terminate = terminateFunc
     this._bufferSize = bufferSize ? bufferSize : 1024*1024
-    // TODO: use this
     this._chunkSize = chunkSize ? chunkSize : 1024*1024
     this._totalBytesSent = 0
     this._totalBytesAcked = 0
-
-    this._bufferFull = false
-    this._paused = false
+    this._unresolvedWrite = false
   }
 
   write(data) {
+
+    console.log(this._unresolvedWrite)
+
+    if (this._unresolvedWrite) {
+      throw "Write called again without waiting for promise to resolve from previous write"
+    }
+
+    this._unresolvedWrite = true
 
     return new Promise((resolve, reject) => {
 
@@ -267,13 +272,18 @@ class SendStream {
 
       const attemptSend = () => {
 
+        // NOTE: bytesInFlight has to be calculated both here and in the ack
+        // method. I made the error of trying to move it there only and
+        // everything appear to still work but it was no longer waiting for
+        // ACKs which caused some subtle issues.
         const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
-        this._bufferFull = bytesInFlight > this._bufferSize
+        const bufferFull = bytesInFlight > this._bufferSize
 
-        if (!this._bufferFull) {
+        if (!bufferFull) {
           if (data.length <= this._chunkSize) {
             this.send(data)
             this._readyForMoreCallback = null
+            this._unresolvedWrite = false
             resolve()
           }
           else {
@@ -304,7 +314,15 @@ class SendStream {
 
   ack(totalBytesAcked) {
     this._totalBytesAcked = totalBytesAcked
-    this._checkBuffer()
+
+    const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
+
+    if (this._readyForMoreCallback && bytesInFlight < this._bufferSize) {
+      this._readyForMoreCallback()
+    }
+    else if (this._onFlushed && bytesInFlight === 0) {
+      this._onFlushed()
+    }
   }
 
   sendFile(file) {
@@ -315,17 +333,10 @@ class SendStream {
     })
 
     this._chunker.onChunk((chunk, readyForMore) => {
-      this.send(chunk)
 
-      this._checkBuffer()
-
-      if (!this._bufferFull) {
+      this.write(chunk).then(() => {
         readyForMore()
-      }
-      else {
-        this._paused = true
-        this._readyForMore = readyForMore
-      }
+      })
     });
 
     this._chunker.onEnd(() => {
@@ -347,28 +358,6 @@ class SendStream {
 
   onFlushed(callback) {
     this._onFlushed = callback
-  }
-
-  _checkBuffer() {
-    const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
-    if (bytesInFlight > this._bufferSize) {
-      this._bufferFull = true
-    }
-    else {
-      if (this._paused) {
-        this._paused = false
-        this._readyForMore()
-        this._readyForMore = null
-      }
-
-      if (this._readyForMoreCallback) {
-        this._readyForMoreCallback()
-      }
-
-      if (this._onFlushed && this._totalBytesAcked === this._totalBytesSent) {
-        this._onFlushed()
-      }
-    }
   }
 }
 
