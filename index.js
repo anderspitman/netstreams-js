@@ -4,7 +4,7 @@ class Stream {
   }
 }
 
-class ReadStream extends Stream {
+class ProducerStream extends Stream {
   constructor() {
     super()
     //this._dataCallback = () => {}
@@ -17,16 +17,16 @@ class ReadStream extends Stream {
     this._demandChanged()
   }
 
-  pipe(writeStream) {
+  pipe(consumerStream) {
     this._dataCallback = (data) => {
-      writeStream.write(data)
+      consumerStream.write(data)
     }
 
     this.onEnd(() => {
-      writeStream.end()
+      consumerStream.end()
     })
 
-    writeStream.onRequest((numBytes) => {
+    consumerStream.onRequest((numBytes) => {
       this.request(numBytes)
     })
   }
@@ -45,7 +45,7 @@ class ReadStream extends Stream {
 }
 
 
-class WriteStream extends Stream {
+class ConsumerStream extends Stream {
   constructor(options) {
     super()
 
@@ -85,6 +85,6 @@ class WriteStream extends Stream {
 }
 
 module.exports = {
-  ReadStream,
-  WriteStream,
+  ProducerStream,
+  ConsumerStream,
 }
