@@ -1,6 +1,22 @@
 class Stream {
+  terminate() {
+    this._terminate()
+  }
+
   onError(callback) {
     this._errorCallback = callback
+  }
+
+  onTerminate(callback) {
+    this._terminateCallback = callback
+  }
+
+  onEnd(callback) {
+    this._endCallback = callback
+  }
+
+  _terminate() {
+    throw "_terminate must be implemented"
   }
 }
 
@@ -18,6 +34,9 @@ class ProducerStream extends Stream {
   }
 
   pipe(consumerStream) {
+
+    this._pipee = consumerStream
+
     this._dataCallback = (data) => {
       consumerStream.write(data)
     }
@@ -29,14 +48,23 @@ class ProducerStream extends Stream {
     consumerStream.onRequest((numBytes) => {
       this.request(numBytes)
     })
+
+    consumerStream.onTerminate(() => {
+      this._terminated = true
+    })
   }
 
   onData(callback) {
     this._dataCallback = callback
   }
 
-  onEnd(callback) {
-    this._endCallback = callback
+
+  _terminate() {
+    this._terminated = true
+
+    if (this._pipee) {
+      this._pipee.terminate()
+    }
   }
 
   _demandChanged() {
@@ -66,12 +94,8 @@ class ConsumerStream extends Stream {
     this._write(data)
   }
 
-  end() {
-    this._endCallback()
-  }
-
   onRequest(callback) {
-    this._onRequestCallback = callback
+    this._requestCallback = callback
     callback(this._bufferSize)
   }
 
