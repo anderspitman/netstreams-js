@@ -1,4 +1,3 @@
-const { FileChunker } = require('file-chunk-reader')
 const ab2str = require('arraybuffer-to-string')
 const str2ab = require('string-to-arraybuffer')
 
@@ -319,27 +318,6 @@ class SendStream {
     else if (this._onFlushed && bytesInFlight === 0) {
       this._onFlushed()
     }
-  }
-
-  sendFile(file) {
-
-    this._chunker = new FileChunker(file, {
-      binary: true,
-      chunkSize: 1024 * 1024,
-    })
-
-    this._chunker.onChunk((chunk, readyForMore) => {
-
-      this.write(chunk).then(() => {
-        readyForMore()
-      })
-    });
-
-    this._chunker.onEnd(() => {
-      this._end()
-    });
-
-    this._chunker.read()
   }
 
   terminate() {
