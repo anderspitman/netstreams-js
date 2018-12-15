@@ -256,8 +256,6 @@ class SendStream {
 
   write(data) {
 
-    console.log(this._unresolvedWrite)
-
     if (this._unresolvedWrite) {
       throw "Write called again without waiting for promise to resolve from previous write"
     }
@@ -352,10 +350,15 @@ class SendStream {
     if (this._chunker) {
       this._chunker.cancel()
     }
+    this._terminateCallback()
   }
 
   onFlushed(callback) {
     this._onFlushed = callback
+  }
+
+  onTerminate(callback) {
+    this._terminateCallback = callback
   }
 }
 
