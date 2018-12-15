@@ -1,3 +1,4 @@
+const { ConsumerStream } = require('omnistreams')
 const ab2str = require('arraybuffer-to-string')
 const str2ab = require('string-to-arraybuffer')
 
@@ -5,7 +6,7 @@ const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
 const MESSAGE_TYPE_TERMINATE_SEND_STREAM = 3
-const MESSAGE_TYPE_STREAM_ACK = 4
+const MESSAGE_TYPE_STREAM_REQUEST_DATA = 4
 
 
 class Peer {
@@ -109,12 +110,12 @@ class Connection {
         //delete this._sendStreams[message.streamId]
         break;
       }
-      case MESSAGE_TYPE_STREAM_ACK: {
+      case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
         const dv = new DataView(message.data.buffer)
-        const bytesAcked = dv.getUint32(0)
+        const bytesRequested = dv.getUint32(0)
 
         const stream = this._sendStreams[message.streamId]
-        stream.ack(bytesAcked)
+        stream._requestCallback(bytesRequested)
         break;
       }
       default: {
@@ -162,9 +163,9 @@ class Connection {
 
   _makeReceiveStream(id) {
 
-    const ackFunc = (numBytes) => {
+    const requestFunc = (numBytes) => {
       const message = new DataView(new ArrayBuffer(2 + 8))
-      message.setInt8(0, MESSAGE_TYPE_STREAM_ACK)
+      message.setInt8(0, MESSAGE_TYPE_STREAM_REQUEST_DATA)
       message.setInt8(1, id) 
 
       message.setUint32(2, numBytes)
@@ -175,7 +176,7 @@ class Connection {
       this._terminateReceiveStream(id)
     }
 
-    const stream = new ReceiveStream({ ackFunc, terminateFunc })
+    const stream = new ReceiveStream({ requestFunc, terminateFunc })
     return stream
   }
 
@@ -241,83 +242,45 @@ class Connection {
 }
 
 
-class SendStream {
+class SendStream extends ConsumerStream {
   constructor({ sendFunc, endFunc, terminateFunc, bufferSize, chunkSize }) {
+    super()
+
     this._send = sendFunc
     this._end = endFunc
     this._terminate = terminateFunc
     this._bufferSize = bufferSize ? bufferSize : 1024*1024
     this._chunkSize = chunkSize ? chunkSize : 1024*1024
-    this._totalBytesSent = 0
-    this._totalBytesAcked = 0
-    this._unresolvedWrite = false
   }
 
-  write(data) {
+  _write(data) {
 
-    if (this._unresolvedWrite) {
-      throw "Write called again without waiting for promise to resolve from previous write"
+    data = new Uint8Array(data)
+
+    const attemptSend = () => {
+
+      if (data.length <= this._chunkSize) {
+        this.send(data)
+      }
+      else {
+        const chunk = new Uint8Array(data.buffer, 0, this._chunkSize) 
+        this.send(chunk)
+        data = new Uint8Array(data.buffer, this._chunkSize, data.length - this._chunkSize)
+        attemptSend()
+      }
     }
 
-    this._unresolvedWrite = true
-
-    return new Promise((resolve, reject) => {
-
-      data = new Uint8Array(data)
-
-      const attemptSend = () => {
-
-        // NOTE: bytesInFlight has to be calculated both here and in the ack
-        // method. I made the error of trying to move it there only and
-        // everything appear to still work but it was no longer waiting for
-        // ACKs which caused some subtle issues.
-        const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
-        const bufferFull = bytesInFlight > this._bufferSize
-
-        if (!bufferFull) {
-          if (data.length <= this._chunkSize) {
-            this.send(data)
-            this._readyForMoreCallback = null
-            this._unresolvedWrite = false
-            resolve()
-          }
-          else {
-            const chunk = new Uint8Array(data.buffer, 0, this._chunkSize) 
-            this.send(chunk)
-            data = new Uint8Array(data.buffer, this._chunkSize, data.length - this._chunkSize)
-            attemptSend()
-          }
-        }
-        else {
-          this._readyForMoreCallback = attemptSend 
-        }
-      }
-
-      attemptSend()
-    })
+    attemptSend()
   }
 
   end() {
     this._end()
+    this._endCallback()
   }
 
   send(data) {
     const array = new Uint8Array(data)
-    this._totalBytesSent += array.byteLength
     this._send(array)
-  }
-
-  ack(numBytes) {
-    this._totalBytesAcked += numBytes 
-
-    const bytesInFlight = this._totalBytesSent - this._totalBytesAcked
-
-    if (this._readyForMoreCallback && bytesInFlight < this._bufferSize) {
-      this._readyForMoreCallback()
-    }
-    else if (this._onFlushed && bytesInFlight === 0) {
-      this._onFlushed()
-    }
   }
 
   terminate() {
@@ -335,7 +298,7 @@ class SendStream {
     this._onFlushed = callback
   }
 
-  onTerminate(callback) {
+  onTerminateOld(callback) {
     this._terminateCallback = callback
   }
 }
@@ -343,11 +306,11 @@ class SendStream {
 
 class ReceiveStream {
 
-  constructor({ ackFunc, terminateFunc }) {
+  constructor({ requestFunc, terminateFunc }) {
     this._onData = () => {}
     this._onEnd = () => {}
     this._onTerminate = () => {}
-    this._ack = ackFunc
+    this._request = requestFunc
     this._terminate = terminateFunc
     this._totalBytesReceived = 0
   }
@@ -362,7 +325,8 @@ class ReceiveStream {
 
   onReceive(data) {
     this._onData(data)
-    this._ack(data.byteLength)
+    // simply request the same amount received
+    this._request(data.byteLength)
   }
 
   terminate() {
