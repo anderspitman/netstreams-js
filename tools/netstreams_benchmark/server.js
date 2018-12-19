@@ -24,8 +24,13 @@ wsServer.on('connection', (ws) => {
     console.log(metadata)
 
     stream.onData((data) => {
-      //console.log(data)
-      //console.log("data")
+      console.log("onData")
+      console.log(data)
+      stream.request(1)
     })
+
+    //stream.request(1)
+    stream.request(10)
+    //stream.request(10)
   })
 })

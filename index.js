@@ -259,23 +259,7 @@ class SendStream extends ConsumerStream {
     }
 
     data = new Uint8Array(data)
-    //this._demand--
     this.send(data)
-
-    //const attemptSend = () => {
-
-    //  if (data.length <= this._chunkSize) {
-    //    this.send(data)
-    //  }
-    //  else {
-    //    const chunk = new Uint8Array(data.buffer, 0, this._chunkSize) 
-    //    this.send(chunk)
-    //    data = new Uint8Array(data.buffer, this._chunkSize, data.length - this._chunkSize)
-    //    attemptSend()
-    //  }
-    //}
-
-    //attemptSend()
   }
 
   end() {
@@ -319,7 +303,6 @@ class ReceiveStream extends ProducerStream {
     this.onTerminate(terminateFunc)
     this._totalBytesReceived = 0
     this._buffer = new Uint8Array(2*1024*1024)
-    //this._request(this._buffer.byteLength)
     this._offset = 0
   }
 
@@ -328,9 +311,7 @@ class ReceiveStream extends ProducerStream {
       return
     }
 
-    //console.log("request", numElements)
     this._request(numElements)
-    //this.flush()
   }
 
   end() {
@@ -342,43 +323,8 @@ class ReceiveStream extends ProducerStream {
       return
     }
 
-    //console.log("receive", data.byteLength)
-    //this._demand--
     this._dataCallback(data)
-    //console.log(this._offset, data)
-    //if (this._offset + data.byteLength > this._buffer.byteLength) {
-    //  throw "Buffer overflow"
-    //}
-
-    //this._buffer = new Uint8Array(this._buffer.buffer, this._offset, data.byteLength)
-    //this._buffer.set(data, this._offset)
-    //console.log(this._buffer)
-    //this._offset += data.byteLength
-    //this.flush()
-
-    //this._dataCallback(data)
   }
-
-  //flush() {
-
-  //  console.log(this._demand, this._offset)
-  //  if (this._demand > 0 && this._offset > 0) {
-  //    const sendSize = this._offset > this._demand ? this._demand : this._offset
-  //    const data = new Uint8Array(this._buffer.buffer, 0, sendSize)
-  //    console.log("here")
-  //    console.log(data)
-  //    this._demand -= sendSize
-  //    this._buffer = new Uint8Array(this._buffer.buffer, sendSize)
-  //    this._offset -= sendSize
-
-  //    console.log("send:", data.byteLength)
-  //    this._dataCallback(data)
-  //  }
-  //}
-
-  //request(numElements) {
-  //  this._request(numElements)
-  //}
 }
 
 module.exports = {
