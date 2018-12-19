@@ -1,4 +1,4 @@
-const { ConsumerStream } = require('omnistreams')
+const { ProducerStream, ConsumerStream } = require('omnistreams')
 const ab2str = require('arraybuffer-to-string')
 const str2ab = require('string-to-arraybuffer')
 
@@ -88,7 +88,7 @@ class Connection {
 
         const stream = this._receiveStreams[message.streamId]
         if (stream) {
-          stream.onReceive(message.data)
+          stream.receive(message.data)
         }
         else {
           console.error("Invalid stream id: " + message.streamId)
@@ -99,7 +99,7 @@ class Connection {
       case MESSAGE_TYPE_STREAM_END: {
         console.log("Stream ended: " + message.streamId)
         const stream = this._receiveStreams[message.streamId]
-        stream._onEnd()
+        stream.end()
         break;
       }
       case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
@@ -163,12 +163,12 @@ class Connection {
 
   _makeReceiveStream(id) {
 
-    const requestFunc = (numBytes) => {
+    const requestFunc = (numElements) => {
       const message = new DataView(new ArrayBuffer(2 + 8))
       message.setInt8(0, MESSAGE_TYPE_STREAM_REQUEST_DATA)
       message.setInt8(1, id) 
 
-      message.setUint32(2, numBytes)
+      message.setUint32(2, numElements)
       this._send(message)
     }
 
@@ -254,26 +254,32 @@ class SendStream extends ConsumerStream {
   }
 
   _write(data) {
-
-    data = new Uint8Array(data)
-
-    const attemptSend = () => {
-
-      if (data.length <= this._chunkSize) {
-        this.send(data)
-      }
-      else {
-        const chunk = new Uint8Array(data.buffer, 0, this._chunkSize) 
-        this.send(chunk)
-        data = new Uint8Array(data.buffer, this._chunkSize, data.length - this._chunkSize)
-        attemptSend()
-      }
+    if (this._finished) {
+      return
     }
 
-    attemptSend()
+    data = new Uint8Array(data)
+    //this._demand--
+    this.send(data)
+
+    //const attemptSend = () => {
+
+    //  if (data.length <= this._chunkSize) {
+    //    this.send(data)
+    //  }
+    //  else {
+    //    const chunk = new Uint8Array(data.buffer, 0, this._chunkSize) 
+    //    this.send(chunk)
+    //    data = new Uint8Array(data.buffer, this._chunkSize, data.length - this._chunkSize)
+    //    attemptSend()
+    //  }
+    //}
+
+    //attemptSend()
   }
 
   end() {
+    this._finished = true
     this._end()
     this._endCallback()
   }
@@ -304,34 +310,75 @@ class SendStream extends ConsumerStream {
 }
 
 
-class ReceiveStream {
+class ReceiveStream extends ProducerStream {
 
   constructor({ requestFunc, terminateFunc }) {
-    this._onData = () => {}
-    this._onEnd = () => {}
-    this._onTerminate = () => {}
+    super()
+
     this._request = requestFunc
-    this._terminate = terminateFunc
+    this.onTerminate(terminateFunc)
     this._totalBytesReceived = 0
+    this._buffer = new Uint8Array(2*1024*1024)
+    //this._request(this._buffer.byteLength)
+    this._offset = 0
   }
 
-  onData(callback) {
-    this._onData = callback
+  _demandChanged(numElements) {
+    if (this._terminated) {
+      return
+    }
+
+    //console.log("request", numElements)
+    this._request(numElements)
+    //this.flush()
   }
 
-  onEnd(callback) {
-    this._onEnd = callback
+  end() {
+    this._endCallback()
   }
 
-  onReceive(data) {
-    this._onData(data)
-    // simply request the same amount received
-    this._request(data.byteLength)
+  receive(data) {
+    if (this._terminated) {
+      return
+    }
+
+    //console.log("receive", data.byteLength)
+    //this._demand--
+    this._dataCallback(data)
+    //console.log(this._offset, data)
+    //if (this._offset + data.byteLength > this._buffer.byteLength) {
+    //  throw "Buffer overflow"
+    //}
+
+    //this._buffer = new Uint8Array(this._buffer.buffer, this._offset, data.byteLength)
+    //this._buffer.set(data, this._offset)
+    //console.log(this._buffer)
+    //this._offset += data.byteLength
+    //this.flush()
+
+    //this._dataCallback(data)
   }
 
-  terminate() {
-    this._terminate()
-  }
+  //flush() {
+
+  //  console.log(this._demand, this._offset)
+  //  if (this._demand > 0 && this._offset > 0) {
+  //    const sendSize = this._offset > this._demand ? this._demand : this._offset
+  //    const data = new Uint8Array(this._buffer.buffer, 0, sendSize)
+  //    console.log("here")
+  //    console.log(data)
+  //    this._demand -= sendSize
+  //    this._buffer = new Uint8Array(this._buffer.buffer, sendSize)
+  //    this._offset -= sendSize
+
+  //    console.log("send:", data.byteLength)
+  //    this._dataCallback(data)
+  //  }
+  //}
+
+  //request(numElements) {
+  //  this._request(numElements)
+  //}
 }
 
 module.exports = {
