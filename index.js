@@ -28,25 +28,26 @@ class ProducerStream extends Stream {
     this._demand = 0
   }
 
-  request(numBytes) {
-    this._demand += numBytes
-    this._demandChanged()
+  request(numElements) {
+    this._demand += numElements
+    this._demandChanged(numElements)
   }
 
   pipe(consumerStream) {
 
     this._pipee = consumerStream
 
-    this._dataCallback = (data) => {
+    this.onData((data) => {
       consumerStream.write(data)
-    }
+    })
 
     this.onEnd(() => {
+      // TODO: ConsumerStream.end doesn't appear to exist...
       consumerStream.end()
     })
 
-    consumerStream.onRequest((numBytes) => {
-      this.request(numBytes)
+    consumerStream.onRequest((numElements) => {
+      this.request(numElements)
     })
 
     consumerStream.onTerminate(() => {
@@ -65,6 +66,8 @@ class ProducerStream extends Stream {
     if (this._pipee) {
       this._pipee.terminate()
     }
+
+    this._terminateCallback()
   }
 
   _demandChanged() {
@@ -79,28 +82,26 @@ class ConsumerStream extends Stream {
 
     const opts = options ? options : {}
 
-    this._bufferSize = opts.bufferSize ? opts.bufferSize : 1024*1024
-    this._demand = this._bufferSize
-
     this._endCallback = () => {}
   }
 
   write(data) {
-    if (data.byteLength > this._demand) {
-      this._errorCallback("Attempt to write more than requested amount of data")
-    }
-
-    this._demand += data.byteLength
     this._write(data)
   }
 
   onRequest(callback) {
-    this._requestCallback = callback
-    callback(this._bufferSize)
+    this._requestCallback = (numElements) => {
+      if (!this._ended) {
+        callback(numElements)
+      }
+    }
   }
 
   onEnd(callback) {
-    this._endCallback = callback
+    this._endCallback = () => {
+      callback()
+      this._ended = true
+    }
   }
 
   _write() {
