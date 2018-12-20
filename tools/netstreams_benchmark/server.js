@@ -1,5 +1,5 @@
 const WebSocket = require('ws')
-const { Peer } = require('netstreams')
+const { Peer } = require('omnistreams-concurrent')
 
 const wsServer = new WebSocket.Server({ port: 9001 })
 
@@ -18,19 +18,18 @@ wsServer.on('connection', (ws) => {
     conn.handleMessage(message.data)
   })
 
-
   conn.onStream((stream, metadata) => {
     console.log("md: ")
     console.log(metadata)
 
     stream.onData((data) => {
-      console.log("onData")
-      console.log(data)
       stream.request(1)
     })
 
-    //stream.request(1)
+    stream.onEnd(() => {
+      conn.sendControlMessage(new Uint8Array(1))
+    })
+
     stream.request(10)
-    //stream.request(10)
   })
 })
