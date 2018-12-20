@@ -247,7 +247,7 @@ class SendStream extends ConsumerStream {
     super()
 
     this._send = sendFunc
-    this._end = endFunc
+    this._endUpstream = endFunc
     this._terminate = terminateFunc
     this._bufferSize = bufferSize ? bufferSize : 2*1024*1024
     this._chunkSize = chunkSize ? chunkSize : 1024*1024
@@ -262,9 +262,9 @@ class SendStream extends ConsumerStream {
     this.send(data)
   }
 
-  end() {
+  _end() {
     this._finished = true
-    this._end()
+    this._endUpstream()
     this._endCallback()
   }
 
