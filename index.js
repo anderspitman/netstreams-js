@@ -230,8 +230,7 @@ class Connection {
     const message = {}
     message.type = byteMessage[0]
     message.streamId = byteMessage[1]
-    // TODO: don't copy here
-    message.data = byteMessage.slice(2)
+    message.data = new Uint8Array(byteMessage.buffer, 2)
     return message
   }
 
