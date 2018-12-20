@@ -1,16 +1,15 @@
 {
-  "name": "netstreams",
-  "version": "1.0.0",
+  "name": "omnistreams-concurrent",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "arraybuffer-to-string": "^1.0.2",
-    "file-chunk-reader": "^2.0.0",
     "string-to-arraybuffer": "^1.0.2"
   }
 }
