@@ -92,6 +92,7 @@ class ConsumerStream extends Stream {
   }
 
   end() {
+    this._ended = true
     this._end()
   }
 
