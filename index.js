@@ -1,4 +1,4 @@
-const { ProducerStream, ConsumerStream } = require('omnistreams')
+const { ProducerStream, ConsumerStream } = require('omnistreams-core')
 const ab2str = require('arraybuffer-to-string')
 const str2ab = require('string-to-arraybuffer')
 
@@ -111,11 +111,10 @@ class Connection {
         break;
       }
       case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
-        const dv = new DataView(message.data.buffer)
-        const bytesRequested = dv.getUint32(0)
+        const elementRequested = message.data[0]
 
         const stream = this._sendStreams[message.streamId]
-        stream._requestCallback(bytesRequested)
+        stream._requestCallback(elementRequested)
         break;
       }
       default: {
@@ -164,11 +163,10 @@ class Connection {
   _makeReceiveStream(id) {
 
     const requestFunc = (numElements) => {
-      const message = new DataView(new ArrayBuffer(2 + 8))
-      message.setInt8(0, MESSAGE_TYPE_STREAM_REQUEST_DATA)
-      message.setInt8(1, id) 
-
-      message.setUint32(2, numElements)
+      const message = new Uint8Array(3)
+      message[0] = MESSAGE_TYPE_STREAM_REQUEST_DATA
+      message[1] = id 
+      message[2] = numElements
       this._send(message)
     }
 
@@ -232,6 +230,7 @@ class Connection {
     const message = {}
     message.type = byteMessage[0]
     message.streamId = byteMessage[1]
+    // TODO: don't copy here
     message.data = byteMessage.slice(2)
     return message
   }
