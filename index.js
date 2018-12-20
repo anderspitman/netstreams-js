@@ -51,7 +51,9 @@ class ProducerStream extends Stream {
     })
 
     consumerStream.onTerminate(() => {
-      this._terminated = true
+      if (!this._terminated) {
+        this.terminate()
+      }
     })
   }
 
@@ -89,6 +91,10 @@ class ConsumerStream extends Stream {
     this._write(data)
   }
 
+  end() {
+    this._end()
+  }
+
   onRequest(callback) {
     this._requestCallback = (numElements) => {
       if (!this._ended) {
@@ -106,6 +112,10 @@ class ConsumerStream extends Stream {
 
   _write() {
     throw "_write must be implemented"
+  }
+
+  _end() {
+    throw "_end must be implemented"
   }
 }
 
