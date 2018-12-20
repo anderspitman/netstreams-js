@@ -7,6 +7,7 @@ const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
 const MESSAGE_TYPE_TERMINATE_SEND_STREAM = 3
 const MESSAGE_TYPE_STREAM_REQUEST_DATA = 4
+const MESSAGE_TYPE_CONTROL_MESSAGE = 5
 
 
 class Peer {
@@ -65,61 +66,87 @@ class Connection {
     this._nextStreamId = 0
   }
 
+  onControlMessage(callback) {
+    this._controlMessageCallback = callback
+  }
+
+  sendControlMessage(controlMessage) {
+    const message = new Uint8Array(1 + controlMessage.byteLength)
+    message[0] = MESSAGE_TYPE_CONTROL_MESSAGE
+    message.set(controlMessage, 1) 
+    this._send(message)
+  }
+
   handleMessage(rawMessage) {
-    const message = this._parseMessage(rawMessage)
 
-    switch (message.type) {
-      case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
-        console.log("Create stream: " + message.streamId)
+    const byteMessage = new Uint8Array(rawMessage)
+    const message = {}
 
-        
-        const stream = this._makeReceiveStream(message.streamId)
+    message.type = byteMessage[0]
 
-        this._receiveStreams[message.streamId] = stream
+    if (message.type === MESSAGE_TYPE_CONTROL_MESSAGE) {
+      const controlMessage = new Uint8Array(byteMessage.buffer, 1)
+      console.log("Control message: " + controlMessage)
+      this._controlMessageCallback(controlMessage)
+    }
+    else {
 
-        const metadata = JSON.parse(ab2str(message.data))
+      message.streamId = byteMessage[1]
+      message.data = new Uint8Array(byteMessage.buffer, 2)
 
-        this._onStream(stream, metadata)
+      switch (message.type) {
+        case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
+          console.log("Create stream: " + message.streamId)
 
-        break;
-      }
-      case MESSAGE_TYPE_STREAM_DATA: {
-        //console.log("Stream data for stream: " + message.streamId)
+          
+          const stream = this._makeReceiveStream(message.streamId)
 
-        const stream = this._receiveStreams[message.streamId]
-        if (stream) {
-          stream.receive(message.data)
+          this._receiveStreams[message.streamId] = stream
+
+          const metadata = JSON.parse(ab2str(message.data))
+
+          this._onStream(stream, metadata)
+
+          break;
         }
-        else {
-          console.error("Invalid stream id: " + message.streamId)
+        case MESSAGE_TYPE_STREAM_DATA: {
+          //console.log("Stream data for stream: " + message.streamId)
+
+          const stream = this._receiveStreams[message.streamId]
+          if (stream) {
+            stream.receive(message.data)
+          }
+          else {
+            console.error("Invalid stream id: " + message.streamId)
+          }
+
+          break;
         }
+        case MESSAGE_TYPE_STREAM_END: {
+          console.log("Stream ended: " + message.streamId)
+          const stream = this._receiveStreams[message.streamId]
+          stream.end()
+          break;
+        }
+        case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
+          console.log("Terminate send stream: " + message.streamId)
+          const stream = this._sendStreams[message.streamId]
+          stream.stop()
+          // TODO: properly delete streams when done
+          //delete this._sendStreams[message.streamId]
+          break;
+        }
+        case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
+          const elementRequested = message.data[0]
 
-        break;
-      }
-      case MESSAGE_TYPE_STREAM_END: {
-        console.log("Stream ended: " + message.streamId)
-        const stream = this._receiveStreams[message.streamId]
-        stream.end()
-        break;
-      }
-      case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
-        console.log("Terminate send stream: " + message.streamId)
-        const stream = this._sendStreams[message.streamId]
-        stream.stop()
-        // TODO: properly delete streams when done
-        //delete this._sendStreams[message.streamId]
-        break;
-      }
-      case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
-        const elementRequested = message.data[0]
-
-        const stream = this._sendStreams[message.streamId]
-        stream._requestCallback(elementRequested)
-        break;
-      }
-      default: {
-        console.error("Unsupported message type: " + message.type)
-        break;
+          const stream = this._sendStreams[message.streamId]
+          stream._requestCallback(elementRequested)
+          break;
+        }
+        default: {
+          console.error("Unsupported message type: " + message.type)
+          break;
+        }
       }
     }
   }
@@ -226,11 +253,6 @@ class Connection {
   }
 
   _parseMessage(rawMessage) {
-    const byteMessage = new Uint8Array(rawMessage)
-    const message = {}
-    message.type = byteMessage[0]
-    message.streamId = byteMessage[1]
-    message.data = new Uint8Array(byteMessage.buffer, 2)
     return message
   }
 
