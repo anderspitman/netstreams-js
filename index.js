@@ -10,55 +10,7 @@ const MESSAGE_TYPE_STREAM_REQUEST_DATA = 4
 const MESSAGE_TYPE_CONTROL_MESSAGE = 5
 
 
-class Peer {
-  constructor() {
-    this._connections = {}
-    this._nextConnectionId = 0
-  }
-
-  _getNextConnectionId() {
-    const next = this._nextConnectionId
-    this._nextConnectionId++
-    return next
-  }
-
-  createConnection() {
-    const connection = new Connection
-    const id = this._getNextConnectionId()
-    this._connections[id] = connection
-    return connection
-  }
-
-  createWebsocketConnection(ws) {
-
-    return new Promise(function(resolve, reject) {
-
-      const conn = new Connection
-
-      ws.binaryType = 'arraybuffer'
-
-      ws.onopen = (event) => {
-
-        conn.setSendHandler((message) => {
-          ws.send(message)
-        })
-
-        ws.onmessage = (rawMessage) => {
-          conn.onMessage(rawMessage)
-        }
-
-        resolve(conn);
-      }
-
-      ws.onerror = (err) => {
-        reject(err);
-      }
-    });
-  }
-}
-
-
-class Connection {
+class Multiplexer {
   constructor() {
 
     this._sendStreams = {}
@@ -105,7 +57,7 @@ class Connection {
 
           const metadata = JSON.parse(ab2str(message.data))
 
-          this._onStream(stream, metadata)
+          this._onProducerCallback(stream, metadata)
 
           break;
         }
@@ -155,8 +107,8 @@ class Connection {
     this._send = handler
   }
 
-  onStream(callback) {
-    this._onStream = callback
+  onProducer(callback) {
+    this._onProducerCallback = callback
   }
 
   createStream(metadata) {
@@ -348,5 +300,5 @@ class ReceiveStream extends ProducerStream {
 }
 
 module.exports = {
-  Peer,
+  Multiplexer,
 }
