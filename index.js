@@ -1,4 +1,4 @@
-class Stream {
+class Streamer {
   terminate() {
     this._terminate()
   }
@@ -20,7 +20,7 @@ class Stream {
   }
 }
 
-class ProducerStream extends Stream {
+class ProducerStream extends Streamer {
   constructor() {
     super()
     //this._dataCallback = () => {}
@@ -78,7 +78,7 @@ class ProducerStream extends Stream {
 }
 
 
-class ConsumerStream extends Stream {
+class ConsumerStream extends Streamer {
   constructor(options) {
     super()
 
