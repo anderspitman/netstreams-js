@@ -51,13 +51,13 @@ class Multiplexer {
           console.log("Create stream: " + message.streamId)
 
           
-          const stream = this._makeReceiveStream(message.streamId)
+          const producer = this._makeReceiveStream(message.streamId)
 
-          this._receiveStreams[message.streamId] = stream
+          this._receiveStreams[message.streamId] = producer
 
           const metadata = JSON.parse(ab2str(message.data))
 
-          this._onProducerCallback(stream, metadata)
+          this._onChannelCallback(producer, metadata)
 
           break;
         }
@@ -107,15 +107,15 @@ class Multiplexer {
     this._send = handler
   }
 
-  onProducer(callback) {
-    this._onProducerCallback = callback
+  onChannel(callback) {
+    this._onChannelCallback = callback
   }
 
-  createStream(metadata) {
+  createChannel(metadata) {
     const id = this.nextStreamId()
     const stream = this._makeSendStream(id)
     this._sendStreams[id] = stream
-    this._signalCreateStream(id, metadata)
+    this._signalCreateChannel(id, metadata)
     return stream
   }
 
@@ -163,7 +163,7 @@ class Multiplexer {
     return next
   }
 
-  _signalCreateStream(streamId, metadata) {
+  _signalCreateChannel(streamId, metadata) {
 
     const mdString = JSON.stringify(metadata)
     const mdArray = new Uint8Array(str2ab(mdString))
