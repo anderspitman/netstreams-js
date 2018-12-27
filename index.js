@@ -57,7 +57,7 @@ class Multiplexer {
 
           const metadata = JSON.parse(ab2str(message.data))
 
-          this._onChannelCallback(producer, metadata)
+          this._onConduitCallback(producer, metadata)
 
           break;
         }
@@ -107,15 +107,15 @@ class Multiplexer {
     this._send = handler
   }
 
-  onChannel(callback) {
-    this._onChannelCallback = callback
+  onConduit(callback) {
+    this._onConduitCallback = callback
   }
 
-  createChannel(metadata) {
+  createConduit(metadata) {
     const id = this.nextStreamId()
     const stream = this._makeSendStream(id)
     this._sendStreams[id] = stream
-    this._signalCreateChannel(id, metadata)
+    this._signalCreateConduit(id, metadata)
     return stream
   }
 
@@ -163,7 +163,7 @@ class Multiplexer {
     return next
   }
 
-  _signalCreateChannel(streamId, metadata) {
+  _signalCreateConduit(streamId, metadata) {
 
     const mdString = JSON.stringify(metadata)
     const mdArray = new Uint8Array(str2ab(mdString))
