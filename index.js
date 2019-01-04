@@ -38,7 +38,6 @@ class Multiplexer {
 
     if (message.type === MESSAGE_TYPE_CONTROL_MESSAGE) {
       const controlMessage = new Uint8Array(byteMessage.buffer, 1)
-      console.log("Control message: " + controlMessage)
       this._controlMessageCallback(controlMessage)
     }
     else {
@@ -81,7 +80,7 @@ class Multiplexer {
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
-          console.log("Terminate send stream: " + message.streamId)
+          //console.log("Terminate send stream: " + message.streamId)
           const stream = this._sendStreams[message.streamId]
           stream.stop()
           // TODO: properly delete streams when done
@@ -190,16 +189,15 @@ class Multiplexer {
   }
 
   _terminateSendStream(streamId) {
-    console.log("terminate send stream: " + streamId)
+    //console.log("terminate send stream: " + streamId)
   }
 
   _terminateReceiveStream(streamId) {
-    console.log("terminate receive stream: " + streamId)
+    //console.log("terminate receive stream: " + streamId)
     const message = new Uint8Array(2)
     message[0] = MESSAGE_TYPE_TERMINATE_SEND_STREAM
     message[1] = streamId
 
-    console.log("send it")
     console.log(message)
     this._send(message)
   }
