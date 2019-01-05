@@ -7,7 +7,7 @@ class Streamer {
     this._errorCallback = callback
   }
 
-  onTerminate(callback) {
+  onTermination(callback) {
     this._terminateCallback = callback
   }
 
@@ -50,7 +50,7 @@ class ProducerStream extends Streamer {
       this.request(numElements)
     })
 
-    consumerStream.onTerminate(() => {
+    consumerStream.onTermination(() => {
       if (!this._terminated) {
         this.terminate()
       }
