@@ -1,5 +1,4 @@
-const { ProducerStream, ConsumerStream } = require('omnistreams-core')
-const str2ab = require('string-to-arraybuffer')
+const { Producer, Consumer } = require('omnistreams-core')
 
 const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
@@ -208,7 +207,7 @@ class Multiplexer {
 }
 
 
-class SendStream extends ConsumerStream {
+class SendStream extends Consumer {
   constructor({ sendFunc, endFunc, terminateFunc, bufferSize, chunkSize }) {
     super()
 
@@ -260,7 +259,7 @@ class SendStream extends ConsumerStream {
 }
 
 
-class ReceiveStream extends ProducerStream {
+class ReceiveStream extends Producer {
 
   constructor({ requestFunc, terminateFunc }) {
     super()

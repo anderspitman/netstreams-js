@@ -9,7 +9,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "arraybuffer-to-string": "^1.0.2",
-    "string-to-arraybuffer": "^1.0.2"
+    "omnistreams-core": "^0.2.0"
   }
 }
