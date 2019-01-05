@@ -20,7 +20,7 @@ class Streamer {
   }
 }
 
-class ProducerStream extends Streamer {
+class Producer extends Streamer {
   constructor() {
     super()
     //this._dataCallback = () => {}
@@ -33,24 +33,24 @@ class ProducerStream extends Streamer {
     this._demandChanged(numElements)
   }
 
-  pipe(consumerStream) {
+  pipe(consumer) {
 
-    this._pipee = consumerStream
+    this._pipee = consumer
 
     this.onData((data) => {
-      consumerStream.write(data)
+      consumer.write(data)
     })
 
     this.onEnd(() => {
-      // TODO: ConsumerStream.end doesn't appear to exist...
-      consumerStream.end()
+      // TODO: Consumer.end doesn't appear to exist...
+      consumer.end()
     })
 
-    consumerStream.onRequest((numElements) => {
+    consumer.onRequest((numElements) => {
       this.request(numElements)
     })
 
-    consumerStream.onTermination(() => {
+    consumer.onTermination(() => {
       if (!this._terminated) {
         this.terminate()
       }
@@ -78,7 +78,7 @@ class ProducerStream extends Streamer {
 }
 
 
-class ConsumerStream extends Streamer {
+class Consumer extends Streamer {
   constructor(options) {
     super()
 
@@ -121,6 +121,6 @@ class ConsumerStream extends Streamer {
 }
 
 module.exports = {
-  ProducerStream,
-  ConsumerStream,
+  Producer,
+  Consumer,
 }
