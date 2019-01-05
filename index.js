@@ -1,5 +1,4 @@
 const { ProducerStream, ConsumerStream } = require('omnistreams-core')
-const ab2str = require('arraybuffer-to-string')
 const str2ab = require('string-to-arraybuffer')
 
 const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
@@ -54,7 +53,7 @@ class Multiplexer {
 
           this._receiveStreams[message.streamId] = producer
 
-          const metadata = JSON.parse(ab2str(message.data))
+          const metadata = message.data
 
           this._onConduitCallback(producer, metadata)
 
@@ -164,16 +163,13 @@ class Multiplexer {
 
   _signalCreateConduit(streamId, metadata) {
 
-    const mdString = JSON.stringify(metadata)
-    const mdArray = new Uint8Array(str2ab(mdString))
-
     const signallingLength = 2
 
     // TODO: allow stream ids to go higher than 255, or at least reuse them
-    const message = new Uint8Array(signallingLength + mdArray.byteLength)
+    const message = new Uint8Array(signallingLength + metadata.byteLength)
     message[0] = MESSAGE_TYPE_CREATE_RECEIVE_STREAM
     message[1] = streamId
-    message.set(mdArray, signallingLength)
+    message.set(metadata, signallingLength)
     
     this._send(message)
   }
@@ -270,7 +266,7 @@ class ReceiveStream extends ProducerStream {
     super()
 
     this._request = requestFunc
-    this.onTerminate(terminateFunc)
+    this.onTermination(terminateFunc)
     this._totalBytesReceived = 0
     this._buffer = new Uint8Array(2*1024*1024)
     this._offset = 0
