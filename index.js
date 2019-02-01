@@ -41,7 +41,10 @@ class Multiplexer {
     else {
 
       message.streamId = byteMessage[1]
-      message.data = new Uint8Array(byteMessage.buffer, 2)
+
+      if (byteMessage.length > 2) {
+        message.data = new Uint8Array(byteMessage.buffer, 2)
+      }
 
       switch (message.type) {
         case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
@@ -164,11 +167,19 @@ class Multiplexer {
 
     const signallingLength = 2
 
+    let message
+
+    if (metadata) {
+      message = new Uint8Array(signallingLength + metadata.byteLength)
+      message.set(metadata, signallingLength)
+    }
+    else {
+      message = new Uint8Array(signallingLength)
+    }
+
     // TODO: allow stream ids to go higher than 255, or at least reuse them
-    const message = new Uint8Array(signallingLength + metadata.byteLength)
     message[0] = MESSAGE_TYPE_CREATE_RECEIVE_STREAM
     message[1] = streamId
-    message.set(metadata, signallingLength)
     
     this._send(message)
   }
