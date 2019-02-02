@@ -11,10 +11,6 @@ class Streamer {
     this._terminateCallback = callback
   }
 
-  onEnd(callback) {
-    this._endCallback = callback
-  }
-
   _terminate() {
     throw "_terminate must be implemented"
   }
@@ -23,8 +19,6 @@ class Streamer {
 class Producer extends Streamer {
   constructor() {
     super()
-    //this._dataCallback = () => {}
-    //this._endCallback = () => {}
     this._demand = 0
   }
 
@@ -42,7 +36,6 @@ class Producer extends Streamer {
     })
 
     this.onEnd(() => {
-      // TODO: Consumer.end doesn't appear to exist...
       consumer.end()
     })
 
@@ -61,6 +54,9 @@ class Producer extends Streamer {
     this._dataCallback = callback
   }
 
+  onEnd(callback) {
+    this._endCallback = callback
+  }
 
   _terminate() {
     this._terminated = true
@@ -104,11 +100,8 @@ class Consumer extends Streamer {
     }
   }
 
-  onEnd(callback) {
-    this._endCallback = () => {
-      callback()
-      this._ended = true
-    }
+  onFinish(callback) {
+    this._finishCallback = callback
   }
 
   _write() {
