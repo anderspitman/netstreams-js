@@ -48,8 +48,6 @@ class Multiplexer {
 
       switch (message.type) {
         case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
-          console.log("Create stream: " + message.streamId)
-
           
           const producer = this._makeReceiveStream(message.streamId)
 
@@ -62,7 +60,6 @@ class Multiplexer {
           break;
         }
         case MESSAGE_TYPE_STREAM_DATA: {
-          //console.log("Stream data for stream: " + message.streamId)
 
           const stream = this._receiveStreams[message.streamId]
           if (stream) {
@@ -75,13 +72,11 @@ class Multiplexer {
           break;
         }
         case MESSAGE_TYPE_STREAM_END: {
-          console.log("Stream ended: " + message.streamId)
           const stream = this._receiveStreams[message.streamId]
           stream.end()
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
-          //console.log("Terminate send stream: " + message.streamId)
           const stream = this._sendStreams[message.streamId]
           stream.stop()
           // TODO: properly delete streams when done
@@ -199,12 +194,10 @@ class Multiplexer {
   }
 
   _terminateReceiveStream(streamId) {
-    //console.log("terminate receive stream: " + streamId)
     const message = new Uint8Array(2)
     message[0] = MESSAGE_TYPE_TERMINATE_SEND_STREAM
     message[1] = streamId
 
-    console.log(message)
     this._send(message)
   }
 
