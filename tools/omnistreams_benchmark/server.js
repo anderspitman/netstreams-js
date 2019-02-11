@@ -1,35 +1,34 @@
 const WebSocket = require('ws')
-const { Peer } = require('omnistreams-concurrent')
+const { Multiplexer } = require('omnistreams-concurrent')
 
 const wsServer = new WebSocket.Server({ port: 9001 })
 
-const peer = new Peer()
+const mux = new Multiplexer()
 
 wsServer.on('connection', (ws) => {
 
+  const mux = new Multiplexer()
 
-  const conn = peer.createConnection()
-
-  conn.setSendHandler((message) => {
+  mux.setSendHandler((message) => {
     ws.send(message)
   })
 
   ws.addEventListener('message', (message) => {
-    conn.handleMessage(message.data)
+    mux.handleMessage(message.data)
   })
 
-  conn.onStream((stream, metadata) => {
+  mux.onConduit((producer, metadata) => {
     console.log("md: ")
     console.log(metadata)
 
-    stream.onData((data) => {
-      stream.request(1)
+    producer.onData((data) => {
+      producer.request(1)
     })
 
-    stream.onEnd(() => {
-      conn.sendControlMessage(new Uint8Array(1))
+    producer.onEnd(() => {
+      mux.sendControlMessage(new Uint8Array(1))
     })
 
-    stream.request(10)
+    producer.request(10)
   })
 })

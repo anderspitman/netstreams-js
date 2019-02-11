@@ -1,31 +1,30 @@
 const WebSocket = require('ws')
-const { Peer } = require('../../')
+const { Multiplexer } = require('../../')
 
 const wsServer = new WebSocket.Server({ port: 9001 })
-const nsPeer = new Peer
 
 wsServer.on('connection', (ws) => {
-  const conn = nsPeer.createConnection()
+  const mux = new Multiplexer()
 
-  conn.setSendHandler((message) => {
+  mux.setSendHandler((message) => {
     ws.send(message)
   })
 
   ws.onmessage = (rawMessage) => {
-    conn.onMessage(rawMessage)
+    mux.onMessage(rawMessage)
   }
 
-  conn.onStream((stream) => {
-    console.log("new stream")
+  mux.onConduit((producer) => {
+    console.log("new producer")
 
-    stream.onData((data) => {
+    producer.onData((data) => {
       console.log("data")
       console.log(data)
     })
   })
 
   const metadata = {}
-  const stream = conn.createStream(metadata)
+  const stream = mux.createStream(metadata)
   stream.write(new Uint8Array([55, 56, 57]))
 
   //ws.send(JSON.stringify(msg))

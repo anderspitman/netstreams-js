@@ -1,5 +1,5 @@
-import { Peer } from 'omnistreams-concurrent'
-import { FileReadStream } from 'omnistreams-filereader-js'
+import { Multiplexer } from 'omnistreams-concurrent'
+import { FileReadProducer } from 'omnistreams-filereader'
 
 
 function timeNowSeconds() {
@@ -16,28 +16,26 @@ let startTime
 const ws = new WebSocket('ws://localhost:9001')
 ws.binaryType = 'arraybuffer'
 
-const nsPeer = new Peer()
-
-let conn;
 ws.onopen = () => {
 
-  const data = new Uint8Array(1024*1024*1024).fill(24)
+  //const data = new Uint8Array(1024*1024*1024).fill(24)
+  const data = new Uint8Array(10*1024*1024).fill(24)
 
-  conn = nsPeer.createConnection()
+  const mux = new Multiplexer()
 
   ws.onmessage = (message) => {
-    conn.handleMessage(message.data)
+    mux.handleMessage(message.data)
   }
 
-  conn.setSendHandler((message) => {
+  mux.setSendHandler((message) => {
     ws.send(message)
   })
 
-  conn.onControlMessage((message) => {
+  mux.onControlMessage((message) => {
     console.log(message)
   })
 
-  const stream = conn.createStream({})
+  const consumer = mux.createConduit()
 
   startTime = timeNowSeconds()
 
@@ -50,10 +48,10 @@ ws.onopen = () => {
   const file = new File([data], "yolo.og")
   // TODO: should probably use a raw typed array Producer rather than going
   // through the file reader
-  const fileProducer = new FileReadStream(file, { chunkSize })
-  fileProducer.pipe(stream)
+  const fileProducer = new FileReadProducer(file, { chunkSize })
+  fileProducer.pipe(consumer)
 
-  conn.onControlMessage((message) => {
+  mux.onControlMessage((message) => {
     const duration = timeNowSeconds() - startTime
     const mebibytes = data.length / 1024 / 1024
     console.log(mebibytes)
