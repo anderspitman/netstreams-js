@@ -127,6 +127,11 @@ class Multiplexer {
     }
   }
 
+  getConsumers() {
+    return Object.keys(this._sendStreams)
+      .map(key => this._sendStreams[key])
+  }
+
   _makeSendStream(id) {
     const sendFunc = (data) => {
       this._streamSend(id, data)
@@ -215,6 +220,7 @@ class Multiplexer {
   }
 
   _terminateSendStream(streamId) {
+    // TODO: properly terminate upstream
     //console.log("terminate send stream: " + streamId)
   }
 
@@ -242,7 +248,7 @@ class SendStream extends Consumer {
 
     this._send = sendFunc
     this._endUpstream = endFunc
-    this._terminate = terminateFunc
+    this._terminateUpstream = terminateFunc
     this._bufferSize = bufferSize ? bufferSize : 2*1024*1024
     this._chunkSize = chunkSize ? chunkSize : 1024*1024
   }
@@ -267,8 +273,8 @@ class SendStream extends Consumer {
     this._send(array)
   }
 
-  terminate() {
-    this._terminate()
+  _terminate() {
+    this._terminateUpstream()
   }
 
   stop() {

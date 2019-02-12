@@ -32,23 +32,62 @@ describe('Multiplexer', function() {
   })
 
   describe('Consumer', function() {
-    it('fails to write after ending', function() {
-      const consumer = mux1.createConduit()
-      consumer.end()
-      expect(() => {
-        consumer.write(new Uint8Array([65]))
-      }).to.throw()
+    describe('#end', function() {
+      it('fails to write after ending', function() {
+        const consumer = mux1.createConduit()
+        consumer.end()
+        expect(() => {
+          consumer.write(new Uint8Array([65]))
+        }).to.throw("Consumer: Attempt to call write after calling end")
+      })
+    })
+    describe('#terminate', function() {
+      it('fails to write after terminating', function() {
+        const consumer = mux1.createConduit()
+        consumer.terminate()
+        expect(() => {
+          consumer.write(new Uint8Array([65]))
+        }).to.throw("Consumer: Attempt to call write after calling terminate")
+      })
+      it('terminates the remote end', function() {
+        let remoteTerminated = false
+        mux2.onConduit((producer, metadata) => {
+          producer.onTermination(() => {
+            remoteTerminated = true
+          })
+        })
+
+        const consumer = mux1.createConduit()
+        consumer.terminate()
+        //expect(remoteTerminated).to.equal(true)
+      })
     })
   })
 
   describe('Conduit', function() {
+
+    describe('#getConsumers', function() {
+      it('starts empty', function() {
+        expect(mux1.getConsumers().length).to.equal(0)
+        expect(mux2.getConsumers().length).to.equal(0)
+      })
+
+      it('grows when createConduit is called', function() {
+        mux1.createConduit()
+        expect(mux1.getConsumers().length).to.equal(1)
+        expect(mux2.getConsumers().length).to.equal(0)
+      })
+    })
+
     it('can only create 256 conduits', function() {
       const expected = new Uint8Array([65, 66, 67, 68])
 
       for (let i = 0; i < 256; i++) {
         expect(mux1.createConduit()).to.not.equal(null)
+        expect(mux1.getConsumers().length).to.equal(i+1)
       }
       expect(mux1.createConduit()).to.equal(null)
+      expect(mux1.getConsumers().length).to.equal(256)
     })
 
     it('can accept one additional conduit after ending one', function() {
@@ -60,9 +99,12 @@ describe('Multiplexer', function() {
         expect(mux1.createConduit()).to.not.equal(null)
       }
       expect(mux1.createConduit()).to.equal(null)
+      expect(mux1.getConsumers().length).to.equal(256)
 
       firstConsumer.end()
+      expect(mux1.getConsumers().length).to.equal(255)
       expect(mux1.createConduit()).to.not.equal(null)
+      expect(mux1.getConsumers().length).to.equal(256)
     })
 
     it("doesn't fail if request received after end", function() {
