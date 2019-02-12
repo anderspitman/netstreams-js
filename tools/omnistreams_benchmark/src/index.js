@@ -19,7 +19,7 @@ ws.binaryType = 'arraybuffer'
 ws.onopen = () => {
 
   //const data = new Uint8Array(1024*1024*1024).fill(24)
-  const data = new Uint8Array(10*1024*1024).fill(24)
+  const data = new Uint8Array(100*1024*1024).fill(24)
 
   const mux = new Multiplexer()
 

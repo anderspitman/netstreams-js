@@ -13,7 +13,12 @@ class Multiplexer {
 
     this._sendStreams = {}
     this._receiveStreams = {}
-    this._nextStreamId = 0
+    this._availableStreamIds = []
+    for (let i = 0; i < 256; i++) {
+      this._availableStreamIds.push(i)
+    }
+
+    this._onConduitCallback = () => {}
   }
 
   onControlMessage(callback) {
@@ -74,6 +79,7 @@ class Multiplexer {
         case MESSAGE_TYPE_STREAM_END: {
           const stream = this._receiveStreams[message.streamId]
           stream.end()
+          // TODO: delete stream from this._receiveStreams
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
@@ -87,7 +93,9 @@ class Multiplexer {
           const elementRequested = message.data[0]
 
           const stream = this._sendStreams[message.streamId]
-          stream._requestCallback(elementRequested)
+          if (stream) {
+            stream._requestCallback(elementRequested)
+          }
           break;
         }
         default: {
@@ -108,10 +116,15 @@ class Multiplexer {
 
   createConduit(metadata) {
     const id = this.nextStreamId()
-    const stream = this._makeSendStream(id)
-    this._sendStreams[id] = stream
-    this._signalCreateConduit(id, metadata)
-    return stream
+    if (id !== null) {
+      const stream = this._makeSendStream(id)
+      this._sendStreams[id] = stream
+      this._signalCreateConduit(id, metadata)
+      return stream
+    }
+    else {
+      return null
+    }
   }
 
   _makeSendStream(id) {
@@ -124,14 +137,22 @@ class Multiplexer {
       message[0] = MESSAGE_TYPE_STREAM_END
       message[1] = id 
       this._send(message)
+      this._removeSendStream(id)
     }
 
-    const terminateFunc = () => {
+    const terminateFunc = (id) => {
       this._terminateSendStream(id)
+      this._removeSendStream(id)
     }
 
     const stream = new SendStream({ sendFunc, endFunc, terminateFunc })
     return stream
+  }
+
+  _removeSendStream(id) {
+    const consumer = this._sendStreams[id]
+    delete this._sendStreams[id]
+    this._availableStreamIds.push(id)
   }
 
   _makeReceiveStream(id) {
@@ -153,9 +174,13 @@ class Multiplexer {
   }
 
   nextStreamId() {
-    const next = this._nextStreamId
-    this._nextStreamId++
-    return next
+    if (this._availableStreamIds.length > 0) {
+      const id = this._availableStreamIds.shift()
+      return id
+    }
+    else {
+      return null
+    }
   }
 
   _signalCreateConduit(streamId, metadata) {
@@ -257,6 +282,7 @@ class SendStream extends Consumer {
     this._onFlushed = callback
   }
 
+  // TODO: remove this
   onTerminateOld(callback) {
     this._terminateCallback = callback
   }
