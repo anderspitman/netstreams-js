@@ -20,6 +20,7 @@ class Producer extends Streamer {
   constructor() {
     super()
     this._demand = 0
+    this._endCallback = () => {}
   }
 
   request(numElements) {
@@ -81,6 +82,7 @@ class Consumer extends Streamer {
     const opts = options ? options : {}
 
     this._endCallback = () => {}
+    this._requestCallback = () => {}
   }
 
   write(data) {
@@ -88,6 +90,11 @@ class Consumer extends Streamer {
   }
 
   end() {
+
+    this.write = () => {
+      throw "Consumer: Attempt to call write after calling end"
+    }
+
     this._ended = true
     this._end()
   }
