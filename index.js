@@ -84,7 +84,7 @@ class Multiplexer {
         }
         case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
           const stream = this._sendStreams[message.streamId]
-          stream.stop()
+          stream.terminate()
           // TODO: properly delete streams when done
           //delete this._sendStreams[message.streamId]
           break;
@@ -145,7 +145,7 @@ class Multiplexer {
       this._removeSendStream(id)
     }
 
-    const terminateFunc = (id) => {
+    const terminateFunc = () => {
       this._terminateSendStream(id)
       this._removeSendStream(id)
     }
@@ -179,6 +179,7 @@ class Multiplexer {
   }
 
   nextStreamId() {
+    //console.log(JSON.stringify(this._availableStreamIds))
     if (this._availableStreamIds.length > 0) {
       const id = this._availableStreamIds.shift()
       return id
@@ -220,7 +221,7 @@ class Multiplexer {
   }
 
   _terminateSendStream(streamId) {
-    // TODO: properly terminate upstream
+    // TODO: properly terminate upstream when terminate called on local end
     //console.log("terminate send stream: " + streamId)
   }
 
@@ -249,6 +250,7 @@ class SendStream extends Consumer {
     this._send = sendFunc
     this._endUpstream = endFunc
     this._terminateUpstream = terminateFunc
+    // TODO: remove these
     this._bufferSize = bufferSize ? bufferSize : 2*1024*1024
     this._chunkSize = chunkSize ? chunkSize : 1024*1024
   }
@@ -277,20 +279,12 @@ class SendStream extends Consumer {
     this._terminateUpstream()
   }
 
-  stop() {
-    if (this._chunker) {
-      this._chunker.cancel()
-    }
-    this._terminateCallback()
-  }
+  //stop() {
+  //  this._terminateCallback()
+  //}
 
   onFlushed(callback) {
     this._onFlushed = callback
-  }
-
-  // TODO: remove this
-  onTerminateOld(callback) {
-    this._terminateCallback = callback
   }
 }
 
