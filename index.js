@@ -20,6 +20,7 @@ class Producer extends Streamer {
   constructor() {
     super()
     this._demand = 0
+    this._dataCallback = () => {}
     this._endCallback = () => {}
   }
 
@@ -97,6 +98,15 @@ class Consumer extends Streamer {
 
     this._ended = true
     this._end()
+  }
+
+  // override
+  terminate() {
+    this.write = () => {
+      throw "Consumer: Attempt to call write after calling terminate"
+    }
+
+    this._terminate()
   }
 
   onRequest(callback) {
