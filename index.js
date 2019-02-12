@@ -1,6 +1,15 @@
 class Streamer {
+  constructor() {
+    this._terminateCallback = () => {}
+    this._terminated = false
+  }
+
   terminate() {
-    this._terminate()
+    if (!this._terminated) {
+      this._terminated = true
+      this._terminate()
+      this._terminateCallback()
+    }
   }
 
   onError(callback) {
@@ -46,9 +55,7 @@ class Producer extends Streamer {
     })
 
     consumer.onTermination(() => {
-      if (!this._terminated) {
-        this.terminate()
-      }
+      this.terminate()
     })
   }
 
@@ -60,14 +67,12 @@ class Producer extends Streamer {
     this._endCallback = callback
   }
 
-  _terminate() {
-    this._terminated = true
+  terminate() {
+    super.terminate()
 
     if (this._pipee) {
       this._pipee.terminate()
     }
-
-    this._terminateCallback()
   }
 
   _demandChanged() {
@@ -102,11 +107,11 @@ class Consumer extends Streamer {
 
   // override
   terminate() {
+    super.terminate()
+
     this.write = () => {
       throw "Consumer: Attempt to call write after calling terminate"
     }
-
-    this._terminate()
   }
 
   onRequest(callback) {
