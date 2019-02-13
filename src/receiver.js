@@ -6,7 +6,7 @@ class ReceiveStream extends Producer {
     super()
 
     this._request = requestFunc
-    this.onTermination(terminateFunc)
+    this._upstreamTerminate = terminateFunc
     this._totalBytesReceived = 0
     this._buffer = new Uint8Array(2*1024*1024)
     this._offset = 0
@@ -30,6 +30,10 @@ class ReceiveStream extends Producer {
     }
 
     this._dataCallback(data)
+  }
+
+  _terminate() {
+    this._upstreamTerminate()
   }
 }
 
