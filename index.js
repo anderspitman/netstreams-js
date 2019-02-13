@@ -85,8 +85,6 @@ class Multiplexer {
         case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
           const stream = this._sendStreams[message.streamId]
           stream.terminate()
-          // TODO: properly delete streams when done
-          //delete this._sendStreams[message.streamId]
           break;
         }
         case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
@@ -203,7 +201,6 @@ class Multiplexer {
       message = new Uint8Array(signallingLength)
     }
 
-    // TODO: allow stream ids to go higher than 255, or at least reuse them
     message[0] = MESSAGE_TYPE_CREATE_RECEIVE_STREAM
     message[1] = streamId
     
@@ -250,9 +247,6 @@ class SendStream extends Consumer {
     this._send = sendFunc
     this._endUpstream = endFunc
     this._terminateUpstream = terminateFunc
-    // TODO: remove these
-    this._bufferSize = bufferSize ? bufferSize : 2*1024*1024
-    this._chunkSize = chunkSize ? chunkSize : 1024*1024
   }
 
   _write(data) {
