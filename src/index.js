@@ -5,7 +5,7 @@ const { MuxReceiver } = require('./mux_receiver')
 const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
-const MESSAGE_TYPE_TERMINATE_SEND_STREAM = 3
+const MESSAGE_TYPE_TERMINATE_SENDER = 3
 const MESSAGE_TYPE_STREAM_REQUEST_DATA = 4
 const MESSAGE_TYPE_CONTROL_MESSAGE = 5
 
@@ -13,7 +13,7 @@ const MESSAGE_TYPE_CONTROL_MESSAGE = 5
 class Multiplexer {
   constructor() {
 
-    this._sendStreams = {}
+    this._senders = {}
     this._receivers = {}
     this._availableStreamIds = []
     for (let i = 0; i < 256; i++) {
@@ -84,15 +84,15 @@ class Multiplexer {
           // TODO: delete stream from this._receivers
           break;
         }
-        case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
-          const stream = this._sendStreams[message.streamId]
+        case MESSAGE_TYPE_TERMINATE_SENDER: {
+          const stream = this._senders[message.streamId]
           stream.terminate()
           break;
         }
         case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
           const elementRequested = message.data[0]
 
-          const stream = this._sendStreams[message.streamId]
+          const stream = this._senders[message.streamId]
           if (stream) {
             stream._requestCallback(elementRequested)
           }
@@ -117,8 +117,8 @@ class Multiplexer {
   createConduit(metadata) {
     const id = this.nextStreamId()
     if (id !== null) {
-      const stream = this._makeSendStream(id)
-      this._sendStreams[id] = stream
+      const stream = this._makeSender(id)
+      this._senders[id] = stream
       this._signalCreateConduit(id, metadata)
       return stream
     }
@@ -128,11 +128,11 @@ class Multiplexer {
   }
 
   getConsumers() {
-    return Object.keys(this._sendStreams)
-      .map(key => this._sendStreams[key])
+    return Object.keys(this._senders)
+      .map(key => this._senders[key])
   }
 
-  _makeSendStream(id) {
+  _makeSender(id) {
     const sendFunc = (data) => {
       this._streamSend(id, data)
     }
@@ -142,21 +142,21 @@ class Multiplexer {
       message[0] = MESSAGE_TYPE_STREAM_END
       message[1] = id 
       this._send(message)
-      this._removeSendStream(id)
+      this._removeSender(id)
     }
 
     const terminateFunc = () => {
-      this._terminateSendStream(id)
-      this._removeSendStream(id)
+      this._terminateSender(id)
+      this._removeSender(id)
     }
 
-    const stream = new SendStream({ sendFunc, endFunc, terminateFunc })
+    const stream = new MuxSender({ sendFunc, endFunc, terminateFunc })
     return stream
   }
 
-  _removeSendStream(id) {
-    const consumer = this._sendStreams[id]
-    delete this._sendStreams[id]
+  _removeSender(id) {
+    const consumer = this._senders[id]
+    delete this._senders[id]
     this._availableStreamIds.push(id)
   }
 
@@ -219,14 +219,14 @@ class Multiplexer {
     this._send(message)
   }
 
-  _terminateSendStream(streamId) {
+  _terminateSender(streamId) {
     // TODO: properly terminate upstream when terminate called on local end
     //console.log("terminate send stream: " + streamId)
   }
 
   _terminateReceiver(streamId) {
     const message = new Uint8Array(2)
-    message[0] = MESSAGE_TYPE_TERMINATE_SEND_STREAM
+    message[0] = MESSAGE_TYPE_TERMINATE_SENDER
     message[1] = streamId
 
     this._send(message)
@@ -237,12 +237,12 @@ class Multiplexer {
   }
 
   _isLocalStream(streamId) {
-    return this._sendStreams[streamId] !== undefined
+    return this._senders[streamId] !== undefined
   }
 }
 
 
-class SendStream extends Consumer {
+class MuxSender extends Consumer {
   constructor({ sendFunc, endFunc, terminateFunc, bufferSize, chunkSize }) {
     super()
 
