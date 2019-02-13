@@ -1,5 +1,5 @@
 const { Consumer } = require('omnistreams-core')
-const { ReceiveStream } = require('./receiver')
+const { MuxReceiver } = require('./mux_receiver')
 
 
 const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
@@ -14,7 +14,7 @@ class Multiplexer {
   constructor() {
 
     this._sendStreams = {}
-    this._receiveStreams = {}
+    this._receivers = {}
     this._availableStreamIds = []
     for (let i = 0; i < 256; i++) {
       this._availableStreamIds.push(i)
@@ -56,9 +56,9 @@ class Multiplexer {
       switch (message.type) {
         case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
           
-          const producer = this._makeReceiveStream(message.streamId)
+          const producer = this._makeReceiver(message.streamId)
 
-          this._receiveStreams[message.streamId] = producer
+          this._receivers[message.streamId] = producer
 
           const metadata = message.data
 
@@ -68,7 +68,7 @@ class Multiplexer {
         }
         case MESSAGE_TYPE_STREAM_DATA: {
 
-          const stream = this._receiveStreams[message.streamId]
+          const stream = this._receivers[message.streamId]
           if (stream) {
             stream.receive(message.data)
           }
@@ -79,9 +79,9 @@ class Multiplexer {
           break;
         }
         case MESSAGE_TYPE_STREAM_END: {
-          const stream = this._receiveStreams[message.streamId]
+          const stream = this._receivers[message.streamId]
           stream.end()
-          // TODO: delete stream from this._receiveStreams
+          // TODO: delete stream from this._receivers
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SEND_STREAM: {
@@ -160,7 +160,7 @@ class Multiplexer {
     this._availableStreamIds.push(id)
   }
 
-  _makeReceiveStream(id) {
+  _makeReceiver(id) {
 
     const requestFunc = (numElements) => {
       const message = new Uint8Array(3)
@@ -171,10 +171,10 @@ class Multiplexer {
     }
 
     const terminateFunc = () => {
-      this._terminateReceiveStream(id)
+      this._terminateReceiver(id)
     }
 
-    const stream = new ReceiveStream({ requestFunc, terminateFunc })
+    const stream = new MuxReceiver({ requestFunc, terminateFunc })
     return stream
   }
 
@@ -224,7 +224,7 @@ class Multiplexer {
     //console.log("terminate send stream: " + streamId)
   }
 
-  _terminateReceiveStream(streamId) {
+  _terminateReceiver(streamId) {
     const message = new Uint8Array(2)
     message[0] = MESSAGE_TYPE_TERMINATE_SEND_STREAM
     message[1] = streamId

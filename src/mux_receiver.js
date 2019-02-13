@@ -1,6 +1,6 @@
 const { Producer } = require('omnistreams-core')
 
-class ReceiveStream extends Producer {
+class MuxReceiver extends Producer {
 
   constructor({ requestFunc, terminateFunc }) {
     super()
@@ -38,5 +38,5 @@ class ReceiveStream extends Producer {
 }
 
 module.exports = {
-  ReceiveStream,
+  MuxReceiver,
 }

@@ -1,12 +1,12 @@
 const { assert, expect } = require('chai')
-const { ReceiveStream } = require('../src/receiver')
+const { MuxReceiver } = require('../src/mux_receiver')
 
 describe('Receiver', function() {
   it("can be terminated", function() {
 
     let upstreamTerminateCalled = false
     let onTerminationCalled = false
-    const receiver = new ReceiveStream({
+    const receiver = new MuxReceiver({
       requestFunc: () => {},
       terminateFunc: () => {
         upstreamTerminateCalled = true
