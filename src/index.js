@@ -2,7 +2,7 @@ const { MuxReceiver } = require('./mux_receiver')
 const { MuxSender } = require('./mux_sender')
 
 
-const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
+const MESSAGE_TYPE_CREATE_RECEIVER = 0
 const MESSAGE_TYPE_STREAM_DATA = 1
 const MESSAGE_TYPE_STREAM_END = 2
 const MESSAGE_TYPE_TERMINATE_SENDER = 3
@@ -54,7 +54,7 @@ class Multiplexer {
       }
 
       switch (message.type) {
-        case MESSAGE_TYPE_CREATE_RECEIVE_STREAM: {
+        case MESSAGE_TYPE_CREATE_RECEIVER: {
           
           const producer = this._makeReceiver(message.streamId)
 
@@ -68,9 +68,9 @@ class Multiplexer {
         }
         case MESSAGE_TYPE_STREAM_DATA: {
 
-          const stream = this._receivers[message.streamId]
-          if (stream) {
-            stream.receive(message.data)
+          const receiver = this._receivers[message.streamId]
+          if (receiver) {
+            receiver.receive(message.data)
           }
           else {
             console.error("Invalid stream id: " + message.streamId)
@@ -79,22 +79,22 @@ class Multiplexer {
           break;
         }
         case MESSAGE_TYPE_STREAM_END: {
-          const stream = this._receivers[message.streamId]
-          stream.end()
+          const receiver = this._receivers[message.streamId]
+          receiver.end()
           // TODO: delete stream from this._receivers
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SENDER: {
-          const stream = this._senders[message.streamId]
-          stream.terminate()
+          const sender = this._senders[message.streamId]
+          sender.terminate()
           break;
         }
         case MESSAGE_TYPE_STREAM_REQUEST_DATA: {
           const elementRequested = message.data[0]
 
-          const stream = this._senders[message.streamId]
-          if (stream) {
-            stream._requestCallback(elementRequested)
+          const sender = this._senders[message.streamId]
+          if (sender) {
+            sender._requestCallback(elementRequested)
           }
           break;
         }
@@ -117,10 +117,10 @@ class Multiplexer {
   createConduit(metadata) {
     const id = this.nextStreamId()
     if (id !== null) {
-      const stream = this._makeSender(id)
-      this._senders[id] = stream
+      const sender = this._makeSender(id)
+      this._senders[id] = sender
       this._signalCreateConduit(id, metadata)
-      return stream
+      return sender
     }
     else {
       return null
@@ -150,8 +150,8 @@ class Multiplexer {
       this._removeSender(id)
     }
 
-    const stream = new MuxSender({ sendFunc, endFunc, terminateFunc })
-    return stream
+    const sender = new MuxSender({ sendFunc, endFunc, terminateFunc })
+    return sender
   }
 
   _removeSender(id) {
@@ -174,8 +174,8 @@ class Multiplexer {
       this._terminateReceiver(id)
     }
 
-    const stream = new MuxReceiver({ requestFunc, terminateFunc })
-    return stream
+    const receiver = new MuxReceiver({ requestFunc, terminateFunc })
+    return receiver 
   }
 
   nextStreamId() {
@@ -203,7 +203,7 @@ class Multiplexer {
       message = new Uint8Array(signallingLength)
     }
 
-    message[0] = MESSAGE_TYPE_CREATE_RECEIVE_STREAM
+    message[0] = MESSAGE_TYPE_CREATE_RECEIVER
     message[1] = streamId
     
     this._send(message)
