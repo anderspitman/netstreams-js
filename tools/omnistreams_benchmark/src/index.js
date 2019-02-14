@@ -1,4 +1,4 @@
-import { Multiplexer } from 'omnistreams-concurrent'
+import { Multiplexer } from 'omnistreams'
 import { FileReadProducer } from 'omnistreams-filereader'
 
 
@@ -14,6 +14,7 @@ function timeNowSeconds() {
 let startTime
 
 const ws = new WebSocket('ws://localhost:9001')
+//const ws = new WebSocket('ws://lf-proxy.iobio.io')
 ws.binaryType = 'arraybuffer'
 
 ws.onopen = () => {
