@@ -1,5 +1,5 @@
-const { Consumer } = require('omnistreams-core')
 const { MuxReceiver } = require('./mux_receiver')
+const { MuxSender } = require('./mux_sender')
 
 
 const MESSAGE_TYPE_CREATE_RECEIVE_STREAM = 0
@@ -238,49 +238,6 @@ class Multiplexer {
 
   _isLocalStream(streamId) {
     return this._senders[streamId] !== undefined
-  }
-}
-
-
-class MuxSender extends Consumer {
-  constructor({ sendFunc, endFunc, terminateFunc, bufferSize, chunkSize }) {
-    super()
-
-    this._send = sendFunc
-    this._endUpstream = endFunc
-    this._terminateUpstream = terminateFunc
-  }
-
-  _write(data) {
-    if (this._finished) {
-      return
-    }
-
-    data = new Uint8Array(data)
-    this.send(data)
-  }
-
-  _end() {
-    this._finished = true
-    this._endUpstream()
-    this._endCallback()
-  }
-
-  send(data) {
-    const array = new Uint8Array(data)
-    this._send(array)
-  }
-
-  _terminate() {
-    this._terminateUpstream()
-  }
-
-  //stop() {
-  //  this._terminateCallback()
-  //}
-
-  onFlushed(callback) {
-    this._onFlushed = callback
   }
 }
 
