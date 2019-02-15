@@ -27,6 +27,7 @@ class MuxSender extends Consumer {
 
   send(data) {
     const array = new Uint8Array(data)
+
     this._send(array)
   }
 

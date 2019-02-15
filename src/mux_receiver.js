@@ -20,7 +20,7 @@ class MuxReceiver extends Producer {
     this._request(numElements)
   }
 
-  end() {
+  stop() {
     this._endCallback()
   }
 

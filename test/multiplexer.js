@@ -72,10 +72,43 @@ describe('Multiplexer', function() {
         expect(mux2.getConsumers().length).to.equal(0)
       })
 
-      it('grows when createConduit is called', function() {
+      it('local end grows when createConduit is called', function() {
         mux1.createConduit()
         expect(mux1.getConsumers().length).to.equal(1)
         expect(mux2.getConsumers().length).to.equal(0)
+        mux2.createConduit()
+        expect(mux1.getConsumers().length).to.equal(1)
+        expect(mux2.getConsumers().length).to.equal(1)
+      })
+
+      it("local end shrinks when ending consumers", function() {
+        const consumer = mux1.createConduit()
+        expect(mux1.getConsumers().length).to.equal(1)
+        consumer.end()
+        expect(mux1.getConsumers().length).to.equal(0)
+      })
+    })
+
+    describe('#getProducers', function() {
+      it('starts empty', function() {
+        expect(mux1.getProducers().length).to.equal(0)
+        expect(mux2.getProducers().length).to.equal(0)
+      })
+
+      it('remote end grows when createConduit is called', function() {
+        mux1.createConduit()
+        expect(mux1.getProducers().length).to.equal(0)
+        expect(mux2.getProducers().length).to.equal(1)
+        mux2.createConduit()
+        expect(mux1.getProducers().length).to.equal(1)
+        expect(mux2.getProducers().length).to.equal(1)
+      })
+
+      it("remote end shrinks when ending consumers", function() {
+        const consumer = mux1.createConduit()
+        expect(mux2.getProducers().length).to.equal(1)
+        consumer.end()
+        expect(mux2.getProducers().length).to.equal(0)
       })
     })
 

@@ -80,11 +80,12 @@ class Multiplexer {
         }
         case MESSAGE_TYPE_STREAM_END: {
           const receiver = this._receivers[message.streamId]
-          receiver.end()
-          // TODO: delete stream from this._receivers
+          receiver.stop()
+          delete this._receivers[message.streamId]
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SENDER: {
+          console.log("terminate sender: " + message.streamId)
           const sender = this._senders[message.streamId]
           sender.terminate()
           break;
@@ -130,6 +131,11 @@ class Multiplexer {
   getConsumers() {
     return Object.keys(this._senders)
       .map(key => this._senders[key])
+  }
+
+  getProducers() {
+    return Object.keys(this._receivers)
+      .map(key => this._receivers[key])
   }
 
   _makeSender(id) {
