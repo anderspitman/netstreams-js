@@ -98,6 +98,7 @@ class Consumer extends Streamer {
   end() {
 
     this.write = () => {
+      console.trace()
       throw "Consumer: Attempt to call write after calling end"
     }
 
@@ -110,6 +111,7 @@ class Consumer extends Streamer {
     super.terminate()
 
     this.write = () => {
+      console.trace()
       throw "Consumer: Attempt to call write after calling terminate"
     }
   }
