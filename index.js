@@ -57,6 +57,10 @@ class Producer extends Streamer {
     consumer.onTermination(() => {
       this.terminate()
     })
+
+    // If the consumer is also a Conduit, this will make continued piping
+    // more ergonomic
+    return consumer
   }
 
   onData(callback) {
