@@ -85,7 +85,6 @@ class Multiplexer {
           break;
         }
         case MESSAGE_TYPE_TERMINATE_SENDER: {
-          console.log("terminate sender: " + message.streamId)
           const sender = this._senders[message.streamId]
           sender.terminate()
           break;
