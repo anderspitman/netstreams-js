@@ -19,47 +19,48 @@ ws.binaryType = 'arraybuffer'
 
 ws.onopen = () => {
 
-  //const data = new Uint8Array(1024*1024*1024).fill(24)
-  const data = new Uint8Array(100*1024*1024).fill(24)
+  const uploadButton = document.getElementById('file_button')
+  uploadButton.addEventListener('change', (e) => {
+    const file = e.target.files[0]
 
-  const mux = new Multiplexer()
+    const mux = new Multiplexer()
 
-  ws.onmessage = (message) => {
-    mux.handleMessage(message.data)
-  }
+    ws.onmessage = (message) => {
+      mux.handleMessage(message.data)
+    }
 
-  mux.setSendHandler((message) => {
-    ws.send(message)
-  })
+    mux.setSendHandler((message) => {
+      ws.send(message)
+    })
 
-  mux.onControlMessage((message) => {
-    console.log(message)
-  })
+    mux.onControlMessage((message) => {
+      console.log(message)
+    })
 
-  const consumer = mux.createConduit()
+    const consumer = mux.createConduit()
 
-  startTime = timeNowSeconds()
+    startTime = timeNowSeconds()
 
-  console.log("first write")
-  const firstTime = timeNowSeconds() - startTime
-  console.log(firstTime)
+    console.log("first write")
+    const firstTime = timeNowSeconds() - startTime
+    console.log(firstTime)
 
-  const chunkSize = 1024*1024
+    const chunkSize = 1024*1024
 
-  const file = new File([data], "yolo.og")
-  // TODO: should probably use a raw typed array Producer rather than going
-  // through the file reader
-  const fileProducer = new FileReadProducer(file, { chunkSize })
-  fileProducer.pipe(consumer)
+    // TODO: should probably use a raw typed array Producer rather than going
+    // through the file reader
+    const fileProducer = new FileReadProducer(file, { chunkSize })
+    fileProducer.pipe(consumer)
 
-  mux.onControlMessage((message) => {
-    const duration = timeNowSeconds() - startTime
-    const mebibytes = data.length / 1024 / 1024
-    console.log(mebibytes)
-    const mebibits = mebibytes * 8
-    console.log(mebibits)
-    const bitrate = mebibits / duration
-    console.log("bitrate: " + bitrate + "mbps")
+    mux.onControlMessage((message) => {
+      const duration = timeNowSeconds() - startTime
+      const mebibytes = data.length / 1024 / 1024
+      console.log(mebibytes)
+      const mebibits = mebibytes * 8
+      console.log(mebibits)
+      const bitrate = mebibits / duration
+      console.log("bitrate: " + bitrate + "mbps")
+    })
   })
 }
 
