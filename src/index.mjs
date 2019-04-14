@@ -139,7 +139,4 @@ class Consumer extends Streamer {
   }
 }
 
-module.exports = {
-  Producer,
-  Consumer,
-}
+export { Consumer, Producer };
