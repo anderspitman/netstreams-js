@@ -1,5 +1,5 @@
-const { MuxReceiver } = require('./mux_receiver')
-const { MuxSender } = require('./mux_sender')
+import { MuxReceiver } from './mux_receiver.mjs';
+import { MuxSender } from './mux_sender.mjs';
 
 
 const MESSAGE_TYPE_CREATE_RECEIVER = 0
@@ -247,6 +247,4 @@ class Multiplexer {
 }
 
 
-module.exports = {
-  Multiplexer,
-}
+export { Multiplexer };

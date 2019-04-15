@@ -1,5 +1,5 @@
 const { assert, expect } = require('chai')
-const { MuxReceiver } = require('../src/mux_receiver')
+import { MuxReceiver } from '../src/mux_receiver.mjs';
 
 describe('Receiver', function() {
   it("can be terminated", function() {

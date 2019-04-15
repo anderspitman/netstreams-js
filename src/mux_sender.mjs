@@ -1,4 +1,4 @@
-const { Consumer } = require('omnistreams-core')
+import { Consumer } from '../node_modules/omnistreams-core/src/index.mjs';
 
 
 class MuxSender extends Consumer {
@@ -45,6 +45,4 @@ class MuxSender extends Consumer {
 }
 
 
-module.exports = {
-  MuxSender,
-}
+export { MuxSender };

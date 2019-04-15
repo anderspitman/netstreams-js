@@ -1,5 +1,5 @@
 const { assert, expect } = require('chai')
-const { MuxSender } = require('../src/mux_sender')
+import { MuxSender } from '../src/mux_sender.mjs';
 
 
 describe('MuxSender', function() {

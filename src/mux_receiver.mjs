@@ -1,4 +1,4 @@
-const { Producer } = require('omnistreams-core')
+import { Producer } from '../node_modules/omnistreams-core/src/index.mjs';
 
 class MuxReceiver extends Producer {
 
@@ -37,6 +37,4 @@ class MuxReceiver extends Producer {
   }
 }
 
-module.exports = {
-  MuxReceiver,
-}
+export { MuxReceiver };

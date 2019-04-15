@@ -1,5 +1,5 @@
 const { assert, expect } = require('chai')
-const { Multiplexer } = require('../')
+import { Multiplexer } from '../';
 
 describe('Multiplexer', function() {
 
