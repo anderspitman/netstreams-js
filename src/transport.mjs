@@ -1,2 +1,4 @@
 class WebSocketInitiator {
 }
+
+export { WebSocketInitiator };
