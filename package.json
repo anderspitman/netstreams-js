@@ -1,18 +1,15 @@
 {
-  "name": "omnistreams-concurrent",
-  "version": "0.4.0",
+  "name": "omnistreams",
+  "version": "0.6.0",
   "description": "",
   "main": "./dist/bundle.cjs.js",
-  "module": "./src/index.mjs",
+  "module": "./index.mjs",
   "scripts": {
     "test": "mocha -r esm",
-    "build": "rollup ./src/index.mjs --format cjs --file ./dist/bundle.cjs.js"
+    "build": "rollup ./index.mjs --format cjs --file ./dist/bundle.cjs.js"
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "omnistreams-core": "^0.3.0"
-  },
   "devDependencies": {
     "chai": "^4.2.0",
     "esm": "^3.2.22",

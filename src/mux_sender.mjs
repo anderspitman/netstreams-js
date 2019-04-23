@@ -1,4 +1,4 @@
-import { Consumer } from '../node_modules/omnistreams-core/src/index.mjs';
+import { Consumer } from './core.mjs';
 
 
 class MuxSender extends Consumer {

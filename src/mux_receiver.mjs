@@ -1,4 +1,4 @@
-import { Producer } from '../node_modules/omnistreams-core/src/index.mjs';
+import { Producer } from './core.mjs';
 
 class MuxReceiver extends Producer {
 
