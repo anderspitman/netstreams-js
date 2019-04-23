@@ -1,2 +1,5 @@
-export { WebSocketInitiator } from './transport.mjs';
-export { Multiplexer } from './multiplexer.mjs';
+import { Multiplexer } from './multiplexer.mjs';
+
+
+export { initiateWebSocketMux } from './transport.mjs';
+export { Multiplexer };

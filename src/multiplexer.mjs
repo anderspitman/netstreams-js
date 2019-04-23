@@ -11,7 +11,17 @@ const MESSAGE_TYPE_CONTROL_MESSAGE = 5
 
 
 class Multiplexer {
-  constructor() {
+  constructor(transport) {
+
+    if (transport) {
+      this.setSendHandler((message) => {
+        transport.send(message)
+      })
+
+      transport.onMessage((message) => {
+        this.handleMessage(message)
+      });
+    }
 
     this._senders = {}
     this._receivers = {}

@@ -1,6 +1,6 @@
 {
   "name": "omnistreams-concurrent",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "",
   "main": "./dist/bundle.cjs.js",
   "module": "./src/index.mjs",
