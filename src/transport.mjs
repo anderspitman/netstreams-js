@@ -49,4 +49,4 @@ async function initiateWebSocketMux(options) {
   });
 }
 
-export { initiateWebSocketMux };
+export { WebSocketTransport, initiateWebSocketMux };

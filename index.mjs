@@ -9,5 +9,5 @@ function decodeObject(array) {
 
 export { Multiplexer } from './src/multiplexer.mjs';
 export { Producer, Consumer } from './src/core.mjs';
-export { initiateWebSocketMux } from './src/transport.mjs';
+export { WebSocketTransport, initiateWebSocketMux } from './src/transport.mjs';
 export { encodeObject, decodeObject };
