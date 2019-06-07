@@ -93,6 +93,7 @@ class Consumer extends Streamer {
 
     this._endCallback = () => {}
     this._requestCallback = () => {}
+    this._finishCallback = () => {}
   }
 
   write(data) {
