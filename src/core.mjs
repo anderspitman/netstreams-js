@@ -140,4 +140,29 @@ class Consumer extends Streamer {
   }
 }
 
-export { Consumer, Producer };
+function pipeInto(producer, consumer) {
+  pipeThrough(producer, consumer);
+}
+
+function pipeThrough(producer, conduit) {
+
+  producer.onData((data) => {
+    conduit.write(data)
+  })
+
+  producer.onEnd(() => {
+    conduit.end()
+  })
+
+  conduit.onRequest((numElements) => {
+    producer.request(numElements)
+  })
+
+  conduit.onTermination(() => {
+    producer.terminate()
+  })
+
+  return conduit; 
+}
+
+export { Consumer, Producer, pipeInto, pipeThrough };
