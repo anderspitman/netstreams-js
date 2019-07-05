@@ -4,7 +4,8 @@ function encodeObject(obj) {
 }
 
 function decodeObject(array) {
-  return JSON.parse(String.fromCharCode.apply(null, new Uint8Array(array)));
+  //return JSON.parse(String.fromCharCode.apply(null, new Uint8Array(array)));
+  return JSON.parse(new TextDecoder("utf-8").decode(new Uint8Array(array)));
 }
 
 export { Multiplexer } from './src/multiplexer.mjs';
