@@ -7,6 +7,8 @@ class BufferConduit {
     this._downstreamDemand = 0;
     this._upstreamDemand = this._capacity;
     this._buffer = [];
+
+    this._onTerminate = () => {};
   }
 
   write(data) {

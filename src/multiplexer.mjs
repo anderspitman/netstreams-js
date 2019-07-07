@@ -21,6 +21,18 @@ class Multiplexer {
       transport.onMessage((message) => {
         this.handleMessage(message)
       });
+
+      transport.onClose(() => {
+        for (const key in this._senders) {
+          const sender = this._senders[key];
+          sender.terminate('disconnected');
+        }
+
+        for (const key in this._receivers) {
+          const receiver = this._receivers[key];
+          receiver.terminate('disconnected');
+        }
+      });
     }
 
     this._senders = {}

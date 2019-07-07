@@ -12,6 +12,12 @@ class WebSocketTransport {
         this._messageCallback(message.data);
       }
     });
+
+    this._ws.addEventListener('close', () => {
+      if (this._closeCallback) {
+        this._closeCallback();
+      }
+    });
   }
 
   send(message) {
@@ -20,6 +26,10 @@ class WebSocketTransport {
 
   onMessage(callback) {
     this._messageCallback = callback;
+  }
+
+  onClose(callback) {
+    this._closeCallback = callback;
   }
 }
 
