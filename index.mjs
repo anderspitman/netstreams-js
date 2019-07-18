@@ -13,3 +13,4 @@ export { Producer, Consumer } from './src/core.mjs';
 export { WebSocketTransport, initiateWebSocketMux } from './src/transport.mjs';
 export { encodeObject, decodeObject };
 export { BufferConduit } from './src/conduit.mjs';
+export { MapConduit } from './src/map_conduit.mjs';
